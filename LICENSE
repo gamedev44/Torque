@@ -1,0 +1,173 @@
+# Torque.JS License Agreement
+
+**Version 1.0**  
+**Last Updated: 2025**
+
+---
+
+## License Type: Semi-Open Source with Attribution
+
+This license applies to **all versions** of Torque.JS (V2 and V3) and allows free use of Torque.JS while protecting the project from unauthorized modifications and ensuring proper attribution.
+
+**Scope**: This license covers:
+- **V2**: Classic HTML/CSS/JS version (`V2/` directory)
+- **V3**: Advanced TypeScript version (`V3/torque-v3/` directory)
+- All associated assets, configurations, and documentation
+
+---
+
+## 📋 Terms and Conditions
+
+### ✅ Permitted Uses
+
+1. **Free Use**: You may use Torque.JS and sounds generated with it in your projects (commercial or non-commercial) free of charge.
+
+2. **Development Collaboration**: We welcome and encourage development collaboration. Contributors who help improve Torque.JS will become part of the tools sub-team and be credited in the project.
+
+3. **Integration**: You may integrate Torque.JS into your applications, games, or projects.
+
+### ❌ Prohibited Uses
+
+1. **No Unauthorized Forking**: You may NOT fork this repository or create derivative works without explicit written authorization from the project maintainers.
+
+2. **No Unauthorized Modifications**: You may NOT modify the source code without first obtaining permission from the project maintainers.
+
+3. **No Removal of Attribution**: You may NOT remove or obscure attribution requirements.
+
+4. **No Redistribution of Modified Versions**: You may NOT redistribute modified versions of Torque.JS without authorization.
+
+### 📝 Attribution Requirements
+
+**MANDATORY - Must be clearly visible:**
+
+1. **In-Game Credits**: If you use Torque.JS or sounds generated with it in a game or application, you MUST include attribution in your credits screen where other tools and contributions are credited. The attribution must be clearly visible and read:
+
+   ```
+   Engine Sound Emulation: Torque.JS
+   Developed by: Iron Will Interactive
+   ```
+
+   Or similar wording that clearly identifies Torque.JS as the tool used.
+
+2. **Changelog/Git History**: When integrating Torque.JS or sounds made with it, you MUST document this in your project's changelog or git commit history for clarity. Example:
+
+   ```
+   - Integrated Torque.JS engine sound emulator
+   - Engine sounds generated using Torque.JS
+   ```
+
+3. **Project Documentation**: If you maintain project documentation, include a reference to Torque.JS in your dependencies/credits section.
+
+### 🤝 Collaboration and Contribution
+
+**We encourage collaboration!**
+
+- If you want to contribute improvements, fixes, or features, please contact us first through our [Discord](https://discord.gg/NfEhsrJD7x) or open an issue on GitHub.
+- Contributors who help improve Torque.JS will:
+  - Become part of the tools sub-team
+  - Be credited in the project's contributor credits
+  - Be recognized for their contributions
+
+**To contribute:**
+1. Reach out to discuss your proposed changes
+2. Get authorization for modifications
+3. Submit contributions through approved channels
+4. Your contributions will be credited appropriately
+
+### 🔒 Protection Against Theft
+
+This license is designed to prevent:
+- Unauthorized forking and rebranding
+- Removal of attribution
+- Unauthorized modifications and redistribution
+- Theft of intellectual property
+
+Violations of these terms may result in legal action.
+
+---
+
+## 📧 Contact and Authorization
+
+**To request authorization for:**
+- Forking the repository
+- Modifying the source code
+- Creating derivative works
+- Redistributing modified versions
+
+**Contact us:**
+- **Discord**: [SpeedVerse Discord](https://discord.gg/NfEhsrJD7x)
+- **GitHub**: Open an issue in the repository
+- **Email**: [Contact through Discord or GitHub]
+
+---
+
+## 🎯 Summary
+
+**You CAN:**
+- ✅ Use Torque.JS for free in your projects
+- ✅ Generate sounds and use them in commercial/non-commercial projects
+- ✅ Collaborate and contribute (with authorization)
+- ✅ Integrate Torque.JS into your applications
+
+**You MUST:**
+- ✅ Credit Torque.JS in game credits screens (clearly visible)
+- ✅ Document usage in changelog/git history
+- ✅ Keep attribution visible
+
+**You CANNOT:**
+- ❌ Fork or modify without authorization
+- ❌ Remove attribution
+- ❌ Redistribute modified versions
+- ❌ Use this project to create competing tools without permission
+
+---
+
+## 📜 Legal Disclaimer
+
+This license is provided "as-is" without warranty of any kind. The authors and contributors of Torque.JS shall not be liable for any damages arising from the use of this software.
+
+By using Torque.JS, you agree to comply with all terms of this license. Failure to comply may result in termination of your rights to use this software.
+
+---
+
+## 🔄 License Modifications
+
+This license may be updated from time to time. Continued use of Torque.JS after license modifications constitutes acceptance of the new terms.
+
+---
+
+## 🙏 Credits
+
+**Torque.JS**  
+Developed by: **Asterisk**  
+Organization: **Iron Will Interactive 2025**
+
+**Project Structure:**
+- **V2**: Classic HTML/CSS/JS Engine Sound Emulator
+- **V3**: Advanced TypeScript Engine Sound Emulator with Video Visualizer
+
+**Contributors:**
+- [Contributors will be listed here as they join the project]
+
+---
+
+## 📞 Questions?
+
+If you have questions about this license or need clarification, please contact us through:
+- [Discord](https://discord.gg/NfEhsrJD7x)
+- GitHub Issues
+
+---
+
+<div align="center">
+
+**Thank you for respecting the terms of this license and helping us build a collaborative, protected semi-open-source tool.**
+
+*Torque.JS - Built with ❤️ for developers who value simplicity and usability*
+
+</div>
+
+---
+
+**© 2025 Iron Will Interactive. All rights reserved.**
+

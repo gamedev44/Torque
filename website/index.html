@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    
+    <!-- Primary Meta Tags -->
+    <title>Torque.JS - Engine Sound Emulator | Loading</title>
+    <meta name="title" content="Torque.JS - Engine Sound Emulator">
+    <meta name="description" content="A pure JavaScript engine sound simulator built with usability in mind. Lightweight, intuitive, and powerful. Generate realistic V6, V8, V10, and V12 engine sounds in real-time.">
+    <meta name="keywords" content="engine sound, engine simulator, audio synthesis, Tone.js, V8 engine, car sounds, racing game audio, engine emulator, JavaScript audio, web audio API">
+    <meta name="author" content="Iron Will Interactive">
+    <meta name="robots" content="index, follow">
+    <meta name="language" content="English">
+    <meta name="theme-color" content="#66fcf1">
+    
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://torquejs.github.io/">
+    <meta property="og:title" content="Torque.JS - Engine Sound Emulator">
+    <meta property="og:description" content="A pure JavaScript engine sound simulator built with usability in mind. Lightweight, intuitive, and powerful. Generate realistic engine sounds in real-time.">
+    <meta property="og:image" content="App_Logo.png">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+    <meta property="og:site_name" content="Torque.JS">
+    <meta property="og:locale" content="en_US">
+    
+    <!-- Twitter -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:url" content="https://torquejs.github.io/">
+    <meta name="twitter:title" content="Torque.JS - Engine Sound Emulator">
+    <meta name="twitter:description" content="A pure JavaScript engine sound simulator built with usability in mind. Lightweight, intuitive, and powerful.">
+    <meta name="twitter:image" content="App_Logo.png">
+    <meta name="twitter:creator" content="@IronWillInteractive">
+    
+    <!-- Favicon and App Icons -->
+    <link rel="icon" type="image/png" href="App_Logo.png">
+    <link rel="shortcut icon" type="image/png" href="App_Logo.png">
+    <link rel="apple-touch-icon" href="App_Logo.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="App_Logo.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="App_Logo.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="App_Logo.png">
+    <link rel="manifest" href="manifest.json">
+    
+    <!-- Canonical URL -->
+    <link rel="canonical" href="https://torquejs.github.io/">
+    
+    <!-- Additional Meta -->
+    <meta name="application-name" content="Torque.JS">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Torque.JS">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="msapplication-TileColor" content="#66fcf1">
+    <meta name="msapplication-TileImage" content="App_Logo.png">
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: #0b0c10;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            width: 100vw;
+            overflow: hidden;
+            font-family: 'Courier New', monospace;
+        }
+
+        .loader-container {
+            position: relative;
+            width: 300px;
+            height: 300px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        /* Gear Spinner */
+        .rim {
+            width: 200px;
+            aspect-ratio: 1;
+            display: grid;
+            color: #66fcf1;
+            background: radial-gradient(farthest-side, currentColor calc(100% - 12px), #0000 calc(100% - 10px) 0);
+            -webkit-mask: radial-gradient(farthest-side, #0000 calc(100% - 26px), #000 calc(100% - 24px));
+            mask: radial-gradient(farthest-side, #0000 calc(100% - 26px), #000 calc(100% - 24px));
+            border-radius: 50%;
+            animation: spin 2s infinite linear;
+            box-shadow: 
+                0 0 30px rgba(102, 252, 241, 0.8),
+                0 0 60px rgba(102, 252, 241, 0.6),
+                0 0 90px rgba(102, 252, 241, 0.4);
+            filter: drop-shadow(0 0 20px rgba(102, 252, 241, 0.8));
+        }
+
+        .rim::before,
+        .rim::after {
+            content: "";
+            grid-area: 1/1;
+            background:
+                linear-gradient(currentColor 0 0) center,
+                linear-gradient(currentColor 0 0) center;
+            background-size: 100% 20px, 20px 100%;
+            background-repeat: no-repeat;
+        }
+
+        .rim::after {
+            transform: rotate(45deg);
+        }
+
+        /* Loading Text */
+        .loading-text {
+            position: absolute;
+            top: calc(50% + 130px);
+            left: 50%;
+            transform: translateX(-50%);
+            color: #66fcf1;
+            font-size: 18px;
+            font-weight: bold;
+            letter-spacing: 3px;
+            text-transform: uppercase;
+            text-shadow: 
+                0 0 10px #66fcf1,
+                0 0 20px #66fcf1,
+                0 0 30px #45a29e;
+            animation: pulse 2s ease-in-out infinite;
+        }
+
+        .loading-text::after {
+            content: '';
+            animation: dots 1.5s steps(4, end) infinite;
+        }
+
+        /* Particles/Glow Effects */
+        .particle {
+            position: absolute;
+            width: 4px;
+            height: 4px;
+            background: #66fcf1;
+            border-radius: 50%;
+            box-shadow: 0 0 10px #66fcf1;
+            animation: float 3s ease-in-out infinite;
+        }
+
+        .particle:nth-child(1) {
+            top: 20%;
+            left: 20%;
+            animation-delay: 0s;
+        }
+
+        .particle:nth-child(2) {
+            top: 30%;
+            right: 20%;
+            animation-delay: 0.5s;
+        }
+
+        .particle:nth-child(3) {
+            bottom: 20%;
+            left: 30%;
+            animation-delay: 1s;
+        }
+
+        .particle:nth-child(4) {
+            bottom: 30%;
+            right: 30%;
+            animation-delay: 1.5s;
+        }
+
+        /* Animations */
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        @keyframes dots {
+            0%, 20% { content: ''; }
+            40% { content: '.'; }
+            60% { content: '..'; }
+            80%, 100% { content: '...'; }
+        }
+
+        @keyframes float {
+            0%, 100% {
+                transform: translateY(0) scale(1);
+                opacity: 0.7;
+            }
+            50% {
+                transform: translateY(-20px) scale(1.2);
+                opacity: 1;
+            }
+        }
+
+        /* Comparison Info - Just Text */
+        .comparison-info {
+            position: absolute;
+            top: calc(50% + 180px);
+            left: 50%;
+            transform: translateX(-50%);
+            width: 90%;
+            max-width: 700px;
+            text-align: center;
+            opacity: 0;
+            animation: fadeInText 2s ease-out 1s forwards, pulseText 3s ease-in-out 3s infinite;
+        }
+
+        .comparison-text {
+            font-size: 0.9rem;
+            color: #66fcf1;
+            line-height: 1.8;
+            text-shadow: 
+                0 0 10px rgba(102, 252, 241, 0.5),
+                0 0 20px rgba(102, 252, 241, 0.3);
+            letter-spacing: 1px;
+        }
+
+        .comparison-text strong {
+            color: #45a29e;
+            font-weight: bold;
+        }
+
+        .comparison-text .vs {
+            color: #c5c6c7;
+            margin: 0 10px;
+            opacity: 0.7;
+        }
+
+        @keyframes fadeInText {
+            from {
+                opacity: 0;
+                transform: translateX(-50%) translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(-50%) translateY(0);
+            }
+        }
+
+        @keyframes pulseText {
+            0%, 100% {
+                opacity: 1;
+            }
+            50% {
+                opacity: 0.6;
+            }
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateX(-50%) translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(-50%) translateY(0);
+            }
+        }
+
+        /* Fade out animation */
+        .fade-out {
+            animation: fadeOut 0.5s ease-out forwards;
+        }
+
+        @keyframes fadeOut {
+            from {
+                opacity: 1;
+            }
+            to {
+                opacity: 0;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="loader-container" id="loader">
+        <!-- Particles -->
+        <div class="particle"></div>
+        <div class="particle"></div>
+        <div class="particle"></div>
+        <div class="particle"></div>
+
+        <!-- Gear Spinner -->
+        <div class="rim"></div>
+
+        <!-- Loading Text -->
+        <div class="loading-text">LOADING</div>
+
+        <!-- Comparison Info -->
+        <div class="comparison-info">
+            <div class="comparison-text">
+                <strong>Torque.JS</strong> uses <strong>Pure Tone Generation</strong> <span class="vs">vs</span> 
+                Engine Sim uses Sound Files • <strong>Effortless Creation</strong> <span class="vs">vs</span> 
+                Complex Audio Understanding • <strong>Full Control</strong> <span class="vs">vs</span> 
+                Limited Customization
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Minimum loading time for smooth experience
+        const minLoadTime = 5000; // 5 seconds
+        const startTime = Date.now();
+
+        // Preload homepage
+        function preloadTorque() {
+            const link = document.createElement('link');
+            link.rel = 'prefetch';
+            link.href = 'homepage.html';
+            document.head.appendChild(link);
+        }
+
+        // Start preloading immediately
+        preloadTorque();
+
+        // Check if page is fully loaded and minimum time has passed
+        function checkLoadComplete() {
+            const elapsed = Date.now() - startTime;
+            const remaining = Math.max(0, minLoadTime - elapsed);
+
+            setTimeout(() => {
+                // Add fade out effect
+                document.getElementById('loader').classList.add('fade-out');
+
+                // Redirect after fade animation
+                setTimeout(() => {
+                    window.location.href = 'homepage.html';
+                }, 500); // Match fade-out animation duration
+            }, remaining);
+        }
+
+        // Wait for page load
+        if (document.readyState === 'complete') {
+            checkLoadComplete();
+        } else {
+            window.addEventListener('load', checkLoadComplete);
+        }
+
+        // Fallback: redirect after max time (5 seconds)
+        setTimeout(() => {
+            if (window.location.href.includes('index.html')) {
+                window.location.href = 'homepage.html';
+            }
+        }, 5000);
+    </script>
+</body>
+</html>

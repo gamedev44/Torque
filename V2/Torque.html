@@ -1,0 +1,3547 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    
+    <!-- Primary Meta Tags -->
+    <title>Torque.JS - Engine Sound Emulator</title>
+    <meta name="title" content="Torque.JS - Engine Sound Emulator">
+    <meta name="description" content="A pure JavaScript engine sound simulator built with usability in mind. Lightweight, intuitive, and powerful. Generate realistic V6, V8, V10, and V12 engine sounds in real-time.">
+    <meta name="keywords" content="engine sound, engine simulator, audio synthesis, Tone.js, V8 engine, car sounds, racing game audio, engine emulator, JavaScript audio, web audio API">
+    <meta name="author" content="Iron Will Interactive">
+    <meta name="robots" content="index, follow">
+    <meta name="language" content="English">
+    <meta name="theme-color" content="#66fcf1">
+    
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://torquejs.github.io/Torque.html">
+    <meta property="og:title" content="Torque.JS - Engine Sound Emulator">
+    <meta property="og:description" content="A pure JavaScript engine sound simulator built with usability in mind. Lightweight, intuitive, and powerful. Generate realistic engine sounds in real-time.">
+    <meta property="og:image" content="App_Logo.png">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+    <meta property="og:site_name" content="Torque.JS">
+    <meta property="og:locale" content="en_US">
+    
+    <!-- Twitter -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:url" content="https://torquejs.github.io/Torque.html">
+    <meta name="twitter:title" content="Torque.JS - Engine Sound Emulator">
+    <meta name="twitter:description" content="A pure JavaScript engine sound simulator built with usability in mind. Lightweight, intuitive, and powerful.">
+    <meta name="twitter:image" content="App_Logo.png">
+    <meta name="twitter:creator" content="@IronWillInteractive">
+    
+    <!-- Favicon and App Icons -->
+    <link rel="icon" type="image/png" href="App_Logo.png">
+    <link rel="shortcut icon" type="image/png" href="App_Logo.png">
+    <link rel="apple-touch-icon" href="App_Logo.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="App_Logo.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="App_Logo.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="App_Logo.png">
+    <link rel="manifest" href="manifest.json">
+    
+    <!-- Canonical URL -->
+    <link rel="canonical" href="https://torquejs.github.io/Torque.html">
+    
+    <!-- Additional Meta -->
+    <meta name="application-name" content="Torque.JS">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Torque.JS">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="msapplication-TileColor" content="#66fcf1">
+    <meta name="msapplication-TileImage" content="App_Logo.png">
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Tone.js for Audio -->
+    <script src="https://unpkg.com/tone@14.8.49/build/Tone.js"></script>
+    <!-- Matter.js for Physics -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/matter-js/0.19.0/matter.min.js"></script>
+    <style>
+        /* DASHBOARD THEME */
+        :root {
+            --bg-dark: #0b0c10;
+            --panel-bg: #1f2833;
+            --accent-cyan: #66fcf1;
+            --accent-dim: #45a29e;
+            --text-light: #c5c6c7;
+            --danger: #e74c3c;
+        }
+        body {
+            background-color: var(--bg-dark);
+            color: var(--text-light);
+            font-family: 'Courier New', monospace; /* Engineering look */
+            overflow: hidden;
+            height: 100vh;
+            width: 100vw;
+            max-width: 100vw;
+            max-height: 100vh;
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        html {
+            overflow: hidden;
+            width: 100%;
+            height: 100%;
+            max-width: 100vw;
+            max-height: 100vh;
+            box-sizing: border-box;
+        }
+        
+        * {
+            box-sizing: border-box;
+        }
+        
+        /* Ensure all elements handle zoom properly */
+        img, video, iframe, canvas {
+            max-width: 100%;
+            height: auto;
+        }
+        
+        /* Prevent horizontal overflow on zoom */
+        section, div, article, aside, main {
+            max-width: 100%;
+            box-sizing: border-box;
+        }
+        
+        /* Ensure inputs and form elements scale */
+        input, select, textarea, button {
+            max-width: 100%;
+            box-sizing: border-box;
+        }
+        
+        /* GRID LAYOUT - Fully responsive to zoom */
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: minmax(clamp(180px, 12vw, 280px), clamp(240px, 18vw, 340px)) 1fr minmax(clamp(160px, 10vw, 240px), clamp(200px, 15vw, 280px));
+            grid-template-rows: minmax(clamp(35px, 4.5vh, 55px), clamp(40px, 5.5vh, 60px)) 1fr minmax(clamp(100px, 12vh, 140px), clamp(140px, 18vh, 180px));
+            gap: clamp(1px, 0.2vw, 3px);
+            height: 100vh;
+            width: 100vw;
+            max-width: 100vw;
+            max-height: 100vh;
+            padding: clamp(1px, 0.2vw, 3px);
+            background: #000;
+            overflow: hidden;
+            box-sizing: border-box;
+            min-height: clamp(500px, 70vh, 800px);
+        }
+
+        .panel {
+            background: var(--panel-bg);
+            border: 1px solid #333;
+            position: relative;
+            overflow: auto;
+            overflow-x: hidden;
+            display: flex;
+            flex-direction: column;
+            min-width: 0;
+            min-height: 0;
+        }
+        
+        /* Ensure panels maintain minimum heights on smaller screens */
+        #visualizer-panel {
+            min-height: clamp(300px, 40vh, 500px);
+        }
+        
+        #controls-panel {
+            min-height: clamp(400px, 50vh, 800px);
+        }
+        
+        #gauges-panel {
+            min-height: clamp(500px, 60vh, 900px);
+        }
+        
+        #waveform-panel {
+            min-height: clamp(100px, 12vh, 140px);
+        }
+
+        .panel-header {
+            background: #111;
+            color: var(--accent-cyan);
+            padding: clamp(4px, 0.8vw, 5px) clamp(8px, 1.2vw, 10px);
+            font-size: clamp(10px, 1.2vw, 12px);
+            border-bottom: 1px solid var(--accent-dim);
+            text-transform: uppercase;
+            letter-spacing: clamp(0.5px, 0.1vw, 1px);
+            font-weight: bold;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        /* HEADER */
+        .header-bar {
+            grid-column: 1 / -1;
+            background: var(--bg-dark);
+            border-bottom: 2px solid var(--accent-cyan);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 clamp(8px, 1.5vw, 15px);
+            min-height: 0;
+            flex-shrink: 0;
+            overflow: hidden;
+            flex-wrap: wrap;
+            gap: clamp(8px, 1.2vw, 20px);
+        }
+        
+        .header-bar h1 {
+            font-size: clamp(0.7rem, 1.2vw, 1rem);
+            white-space: nowrap;
+            flex-shrink: 1;
+            min-width: 0;
+        }
+        
+        .header-bar > div {
+            display: flex;
+            align-items: center;
+            gap: clamp(8px, 1.2vw, 20px);
+            flex-wrap: wrap;
+            flex-shrink: 1;
+        }
+
+        /* Volume Control */
+        .volume-control {
+            position: relative;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .volume-btn {
+            background: transparent;
+            border: 1px solid var(--accent-cyan);
+            color: var(--accent-cyan);
+            padding: clamp(4px, 0.8vw, 6px) clamp(8px, 1.2vw, 12px);
+            font-family: inherit;
+            font-size: clamp(10px, 1.1vw, 14px);
+            cursor: pointer;
+            transition: all 0.2s;
+            text-transform: uppercase;
+            min-width: clamp(40px, 5vw, 50px);
+            white-space: nowrap;
+        }
+
+        .volume-btn:hover {
+            background: var(--accent-cyan);
+            color: #000;
+            box-shadow: 0 0 10px var(--accent-cyan);
+        }
+
+        .volume-btn.muted {
+            border-color: var(--danger);
+            color: var(--danger);
+        }
+
+        .volume-btn.muted:hover {
+            background: var(--danger);
+            color: #fff;
+        }
+
+        .volume-slider-container {
+            position: relative;
+            display: none;
+            align-items: center;
+            gap: clamp(5px, 0.8vw, 8px);
+            flex-shrink: 1;
+            min-width: 0;
+        }
+
+        .volume-control:hover .volume-slider-container {
+            display: flex;
+        }
+
+        .volume-slider-container.visible {
+            display: flex;
+        }
+
+        .volume-slider {
+            width: clamp(80px, 10vw, 120px);
+            height: clamp(3px, 0.4vw, 4px);
+            -webkit-appearance: none;
+            appearance: none;
+            background: #333;
+            border: 1px solid #555;
+            outline: none;
+            cursor: pointer;
+            flex-shrink: 1;
+            min-width: 0;
+        }
+
+        .volume-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: clamp(10px, 1.3vw, 14px);
+            height: clamp(10px, 1.3vw, 14px);
+            background: var(--accent-cyan);
+            cursor: pointer;
+            border: 1px solid #fff;
+            box-shadow: 0 0 5px var(--accent-cyan);
+        }
+
+        .volume-slider::-moz-range-thumb {
+            width: clamp(10px, 1.3vw, 14px);
+            height: clamp(10px, 1.3vw, 14px);
+            background: var(--accent-cyan);
+            cursor: pointer;
+            border: 1px solid #fff;
+            border-radius: 0;
+            box-shadow: 0 0 5px var(--accent-cyan);
+        }
+
+        .volume-value {
+            color: var(--accent-cyan);
+            font-size: clamp(9px, 1vw, 11px);
+            font-family: 'Courier New', monospace;
+            min-width: clamp(30px, 4vw, 35px);
+            text-align: right;
+            white-space: nowrap;
+        }
+
+        /* VISUALIZER */
+        #visualizer-panel {
+            grid-column: 2 / 3;
+            grid-row: 2 / 3;
+            background: radial-gradient(circle at center, #2c3e50 0%, #000 100%);
+        }
+
+        /* CONTROLS (Left) */
+        #controls-panel {
+            grid-column: 1 / 2;
+            grid-row: 2 / 4;
+            padding: clamp(6px, 1vw, 8px);
+            gap: clamp(8px, 1.2vw, 12px);
+            overflow-y: auto;
+            overflow-x: hidden;
+            min-width: 0;
+            max-width: 100%;
+        }
+
+        /* GAUGES (Right) */
+        #gauges-panel {
+            grid-column: 3 / 4;
+            grid-row: 2 / 4;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-start;
+            padding-top: clamp(8px, 1.2vw, 10px);
+            padding-left: clamp(4px, 0.8vw, 6px);
+            padding-right: clamp(4px, 0.8vw, 6px);
+            padding-bottom: clamp(4px, 0.8vw, 6px);
+            gap: clamp(8px, 1.2vw, 10px);
+            overflow-y: auto;
+            overflow-x: hidden;
+            min-width: 0;
+            max-width: 100%;
+        }
+
+        /* WAVEFORM (Bottom Center) */
+        #waveform-panel {
+            grid-column: 2 / 3;
+            grid-row: 3 / 4;
+            min-height: clamp(100px, 12vh, 140px);
+            overflow: hidden;
+        }
+
+        /* CUSTOM SLIDERS */
+        input[type=range] {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 100%;
+            background: transparent;
+        }
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            height: 16px;
+            width: 16px;
+            border-radius: 0;
+            background: var(--accent-cyan);
+            cursor: pointer;
+            margin-top: -6px;
+            border: 1px solid #fff;
+        }
+        input[type=range]::-webkit-slider-runnable-track {
+            width: 100%;
+            height: 4px;
+            background: #333;
+            border: 1px solid #555;
+        }
+
+        /* BUTTONS */
+        .btn-tech {
+            background: transparent;
+            border: 1px solid var(--accent-cyan);
+            color: var(--accent-cyan);
+            padding: clamp(6px, 1vw, 8px) clamp(12px, 1.5vw, 16px);
+            font-family: inherit;
+            font-size: clamp(10px, 1.1vw, 12px);
+            cursor: pointer;
+            transition: all 0.2s;
+            text-transform: uppercase;
+            white-space: nowrap;
+            max-width: 100%;
+            box-sizing: border-box;
+        }
+        .btn-tech:hover {
+            background: var(--accent-cyan);
+            color: #000;
+            box-shadow: 0 0 10px var(--accent-cyan);
+        }
+        .btn-tech.active {
+            background: var(--accent-cyan);
+            color: #000;
+        }
+        .btn-danger {
+            border-color: var(--danger);
+            color: var(--danger);
+        }
+        .btn-danger:hover {
+            background: var(--danger);
+            color: #fff;
+            box-shadow: 0 0 10px var(--danger);
+        }
+
+        /* RECORDING INDICATOR */
+        .rec-dot {
+            height: clamp(7px, 1vw, 10px);
+            width: clamp(7px, 1vw, 10px);
+            background-color: #555;
+            border-radius: 50%;
+            display: inline-block;
+            margin-right: clamp(3px, 0.5vw, 5px);
+        }
+        .rec-active .rec-dot {
+            background-color: red;
+            animation: pulse 1s infinite;
+        }
+        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
+
+        /* METER SYSTEM (from working speedometer, adapted for dark theme) */
+        .meter {
+            display: inline-block;
+            position: relative;
+            width: clamp(150px, 18vw, 250px);
+            height: clamp(150px, 18vw, 250px);
+            background-color: #111;
+            border-radius: 50%;
+            margin: clamp(0.3rem, 0.5vw, 0.5rem);
+            box-shadow: inset 0 3px 6px rgba(0,0,0,0.5), inset 0 3px 6px rgba(0,0,0,0.7);
+            border: none;
+            max-width: 100%;
+            box-sizing: border-box;
+        }
+        
+        .meter#gauge-map {
+            width: clamp(120px, 14vw, 180px);
+            height: clamp(120px, 14vw, 180px);
+        }
+        
+        .meter#gauge-speed {
+            width: clamp(180px, 22vw, 280px);
+            height: clamp(180px, 22vw, 280px);
+            margin-bottom: clamp(6px, 1vw, 10px);
+        }
+
+        .meter:before {
+            content: "";
+            display: block;
+            position: absolute;
+            width: calc(100% + 7%);
+            left: -3.5%;
+            top: -3.5%;
+            bottom: -3.5%;
+            border-radius: 50%;
+            background: transparent;
+            z-index: -1;
+            box-shadow: none;
+        }
+
+        .label {
+            position: absolute;
+            left: 50%;
+            transform: translate3d(-50%, -50%, 0);
+            text-align: center;
+            color: var(--text-light);
+        }
+
+        .label-value {
+            color: var(--text-light);
+        }
+        
+        .label-value div {
+            background: linear-gradient(to bottom, #222, #333);
+            padding: 5px 10px;
+            border-radius: 3px;
+            border: 1px solid #444;
+        }
+
+        .label span {
+            text-transform: uppercase;
+        }
+
+        .label-unit {
+            top: 82.5%;
+        }
+
+        .label-unit div {
+            font-size: clamp(0.7rem, 1.1vw, 0.9rem);
+        }
+
+        .meter--big-label .label-unit div {
+            font-size: 0;
+        }
+
+        .label-value {
+            top: 50%;
+            line-height: 1.25;
+        }
+
+        .label-value div, .label-value span {
+            font-size: 0;
+        }
+
+        .meter--big-label .label-value div, .meter--big-label .label-value span {
+            font-size: clamp(1.1rem, 1.8vw, 1.5rem);
+        }
+
+        .label-value div {
+            font-family: 'Courier New', monospace;
+            font-style: italic;
+        }
+
+        .meter--big-label .label-value span {
+            font-size: clamp(0.7rem, 1.1vw, 0.9rem);
+        }
+
+        .label-value span {
+            display: block;
+            position: absolute;
+            left: 50%;
+            transform: translate3d(-50%, 0, 0);
+        }
+
+        .needle {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            display: block;
+            width: clamp(2px, 0.3vw, 3px);
+            height: clamp(60px, 8vw, 90px);
+            transform: translate3d(-50%, 0, 0);
+            transform-origin: 50% 0;
+            background-color: var(--accent-cyan);
+            box-shadow: 0 0 clamp(3px, 0.4vw, 4px) rgba(102, 252, 241, 0.5);
+            z-index: 10;
+            transition: transform 0.05s linear;
+        }
+
+        .needle:before,
+        .needle:after {
+            display: block;
+            position: absolute;
+            content: "";
+            width: 0;
+            height: 0;
+            border-style: solid;
+        }
+
+        .needle:before {
+            left: clamp(-3px, -0.4vw, -4px);
+            border-width: 0 clamp(3px, 0.4vw, 4px) clamp(60px, 8vw, 90px) 0;
+            border-color: transparent var(--accent-cyan) transparent transparent;
+            filter: drop-shadow(0 0 clamp(1px, 0.2vw, 2px) rgba(102, 252, 241, 0.6));
+        }
+
+        .needle:after {
+            right: clamp(-3px, -0.4vw, -4px);
+            border-width: clamp(60px, 8vw, 90px) clamp(3px, 0.4vw, 4px) 0 0;
+            border-color: rgba(102, 252, 241, 0.7) transparent transparent transparent;
+        }
+
+        .needle-axle {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            display: block;
+            width: 12%;
+            height: 12%;
+            transform: translate3d(-50%, -50%, 0);
+            border-radius: 50%;
+            background-color: #222;
+            color: var(--accent-cyan);
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.8), 0 0 8px rgba(102, 252, 241, 0.3);
+            cursor: pointer;
+            z-index: 11;
+            border: 2px solid #333;
+        }
+
+        .needle-axle:hover {
+            background-color: #000;
+        }
+
+        .meter--big-label .needle-axle {
+            width: 37.5%;
+            height: 37.5%;
+        }
+
+        .grad {
+            position: absolute;
+            display: inline-block;
+            font-size: clamp(0.7rem, 1.1vw, 0.9rem);
+            line-height: 1;
+            color: var(--text-light);
+            transform: translate3d(-50%, -50%, 0);
+            font-weight: bold;
+        }
+
+        .grad.redzone {
+            color: var(--danger);
+        }
+
+        .meter--rpm .grad {
+            font-size: clamp(0.85rem, 1.3vw, 1.1rem);
+        }
+
+        .grad-tick {
+            position: absolute;
+            display: block;
+            width: clamp(2px, 0.3vw, 3px);
+            height: 0.75em;
+            transform-origin: 50% 0;
+            background-color: var(--text-light);
+        }
+
+        .grad-tick--half {
+            width: clamp(1.5px, 0.2vw, 2px);
+            height: 0.5em;
+        }
+
+        /* Responsive Design - Prevent Height Compression & Handle Zoom */
+        /* All sizes use viewport units to scale with browser zoom */
+        @media (max-height: 1080px) {
+            .dashboard-grid {
+                grid-template-rows: minmax(clamp(35px, 4.5vh, 55px), clamp(40px, 5.5vh, 60px)) 1fr minmax(clamp(100px, 12vh, 140px), clamp(140px, 18vh, 180px));
+            }
+            #visualizer-panel { min-height: clamp(200px, 30vh, 450px); }
+            #controls-panel { min-height: clamp(300px, 40vh, 700px); }
+            #gauges-panel { min-height: clamp(400px, 50vh, 800px); }
+            #waveform-panel { min-height: clamp(80px, 10vh, 120px); }
+        }
+        @media (max-height: 900px) {
+            .dashboard-grid {
+                grid-template-rows: minmax(clamp(30px, 4vh, 45px), clamp(35px, 5vh, 50px)) 1fr minmax(clamp(90px, 12vh, 130px), clamp(120px, 16vh, 160px));
+            }
+            #visualizer-panel { min-height: clamp(180px, 28vh, 400px); }
+            #controls-panel { min-height: clamp(250px, 38vh, 600px); }
+            #gauges-panel { min-height: clamp(350px, 48vh, 700px); }
+            #waveform-panel { min-height: clamp(70px, 9vh, 100px); }
+        }
+        @media (max-height: 768px) {
+            .dashboard-grid {
+                grid-template-rows: minmax(clamp(25px, 3.5vh, 40px), clamp(30px, 4.5vh, 45px)) 1fr minmax(clamp(80px, 11vh, 120px), clamp(100px, 14vh, 140px));
+            }
+            #visualizer-panel { min-height: clamp(150px, 25vh, 350px); }
+            #controls-panel { min-height: clamp(200px, 35vh, 500px); }
+            #gauges-panel { min-height: clamp(300px, 45vh, 600px); }
+            #waveform-panel { min-height: clamp(60px, 8vh, 90px); }
+        }
+        
+        /* Handle extreme zoom levels - ensure everything scales proportionally */
+        @media (min-width: 200vw) {
+            /* At 200%+ zoom, reduce minimum sizes further */
+            .dashboard-grid {
+                grid-template-columns: minmax(clamp(120px, 8vw, 200px), clamp(160px, 12vw, 240px)) 1fr minmax(clamp(100px, 6vw, 160px), clamp(140px, 10vw, 200px));
+            }
+        }
+
+        .grad-tick--quarter {
+            width: clamp(0.5px, 0.1vw, 1px);
+            height: 0.25em;
+        }
+
+        .grad-tick.redzone,
+        .grad-tick--half.redzone,
+        .grad-tick--quarter.redzone {
+            background-color: var(--danger);
+        }
+
+    </style>
+</head>
+<body>
+
+    <div class="dashboard-grid">
+        <!-- TOP HEADER -->
+        <div class="header-bar">
+            <h1 class="text-2xl font-bold tracking-widest text-cyan-400" style="font-size: clamp(0.7rem, 1.2vw, 1rem);">Torque.JS : Engine Sound Emulator <span class="text-sm text-gray-400 font-normal" style="font-size: clamp(0.6rem, 1vw, 0.875rem);">Build v2.0.44.1 (alpha)</span></h1>
+            <div style="display: flex; align-items: center; gap: clamp(12px, 2vw, 20px); flex-wrap: wrap; flex-shrink: 1; min-width: 0;">
+                <div id="status-display" class="text-xs font-mono text-gray-400" style="font-size: clamp(9px, 1.1vw, 12px); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%;">SYSTEM READY // WAITING FOR IGNITION</div>
+                <div class="volume-control">
+                    <button id="volume-btn" class="volume-btn" title="Volume Control">VOL</button>
+                    <div class="volume-slider-container" id="volume-slider-container">
+                        <input type="range" id="volume-slider" class="volume-slider" min="0" max="100" value="50" step="1">
+                        <span class="volume-value" id="volume-value">50%</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- LEFT PANEL: CONTROLS & EXPORT -->
+        <div class="panel" id="controls-panel">
+            <div class="panel-header">Engine Parameters</div>
+            
+            <!-- MASTER CONTROLS -->
+            <div class="space-y-4 mb-6">
+                <button id="ignition-btn" class="btn-tech w-full py-4 text-lg font-bold">IGNITION START</button>
+                
+                <div class="bg-black p-2 border border-gray-700">
+                    <label class="text-xs text-gray-500 block mb-1">KEYBOARD INPUT</label>
+                    <div class="flex gap-2 justify-center">
+                        <div class="w-8 h-8 border border-gray-600 flex items-center justify-center text-xs">↑</div>
+                        <div class="text-xs flex items-center">THROTTLE</div>
+                    </div>
+                    <div class="flex gap-2 justify-center mt-1">
+                        <div class="w-8 h-8 border border-gray-600 flex items-center justify-center text-xs">↓</div>
+                        <div class="text-xs flex items-center">BRAKE</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="panel-header">Tuning</div>
+            
+            <div class="space-y-4 mt-2">
+                <div>
+                    <div class="flex justify-between text-xs mb-1">
+                        <span>DISTORTION</span>
+                        <span id="val-dist" class="text-cyan-400">0.2</span>
+                    </div>
+                    <input type="range" id="slider-dist" min="0" max="1" step="0.01" value="0.2">
+                </div>
+                <div>
+                    <div class="flex justify-between text-xs mb-1">
+                        <span>BACKFIRE CHANCE</span>
+                        <span id="val-backfire" class="text-cyan-400">0.3</span>
+                    </div>
+                    <input type="range" id="slider-backfire" min="0" max="1" step="0.01" value="0.3">
+                </div>
+                 <div>
+                    <div class="flex justify-between text-xs mb-1">
+                        <span>REV LIMITER</span>
+                        <span id="val-limiter" class="text-cyan-400">7500</span>
+                    </div>
+                    <input type="range" id="slider-limiter" min="4000" max="9000" step="100" value="7500">
+                </div>
+                <div class="mt-4 pt-4 border-t border-gray-700">
+                    <label class="flex items-center gap-2 cursor-pointer">
+                        <input type="checkbox" id="governor-checkbox" checked class="w-4 h-4 accent-cyan-400">
+                        <span class="text-xs">GOVERNOR ENABLED</span>
+                    </label>
+                    <p class="text-[10px] text-gray-500 mt-1">
+                        Disable to allow RPM into red zone
+                    </p>
+                </div>
+            </div>
+
+            <div class="panel-header mt-6">Advanced Engine Tuning</div>
+            <div class="bg-black p-3 border border-gray-800 mt-2" id="advanced-panel" style="display: none;">
+                <div class="space-y-3">
+                    <div>
+                        <div class="flex justify-between text-xs mb-1">
+                            <span>ENGINE TYPE</span>
+                            <span id="val-engine-type" class="text-cyan-400">V8</span>
+                        </div>
+                        <select id="engine-type" class="w-full bg-gray-900 text-cyan-400 text-xs p-1 border border-gray-700">
+                            <option value="v6">V6</option>
+                            <option value="v8" selected>V8</option>
+                            <option value="v10">V10</option>
+                            <option value="v12">V12</option>
+                        </select>
+                    </div>
+                    <div>
+                        <div class="flex justify-between text-xs mb-1">
+                            <span>BASE PITCH</span>
+                            <span id="val-base-pitch" class="text-cyan-400">16</span> Hz
+                        </div>
+                        <input type="range" id="slider-base-pitch" min="15" max="80" step="1" value="16">
+                    </div>
+                    <div>
+                        <div class="flex justify-between text-xs mb-1">
+                            <span>PITCH RANGE</span>
+                            <span id="val-pitch-range" class="text-cyan-400">1.9</span>x
+                        </div>
+                        <input type="range" id="slider-pitch-range" min="1.5" max="6" step="0.1" value="1.9">
+                    </div>
+                    <div>
+                        <div class="flex justify-between text-xs mb-1">
+                            <span>DISTORTION STRENGTH</span>
+                            <span id="val-distortion-strength" class="text-cyan-400">0.82</span>
+                        </div>
+                        <input type="range" id="slider-distortion-strength" min="0" max="1" step="0.01" value="0.82">
+                    </div>
+                    <div>
+                        <div class="flex justify-between text-xs mb-1">
+                            <span>HIGH PASS</span>
+                            <span id="val-highpass" class="text-cyan-400">150</span> Hz
+                        </div>
+                        <input type="range" id="slider-highpass" min="100" max="800" step="10" value="150">
+                    </div>
+                    <div>
+                        <div class="flex justify-between text-xs mb-1">
+                            <span>LOW PASS</span>
+                            <span id="val-lowpass" class="text-cyan-400">1470</span> Hz
+                        </div>
+                        <input type="range" id="slider-lowpass" min="200" max="2000" step="10" value="1470">
+                    </div>
+                    <div>
+                        <div class="flex justify-between text-xs mb-1">
+                            <span>SUB OSC VOLUME</span>
+                            <span id="val-sub-vol" class="text-cyan-400">-11</span> dB
+                        </div>
+                        <input type="range" id="slider-sub-vol" min="-20" max="0" step="1" value="-11">
+                    </div>
+                    <div>
+                        <div class="flex justify-between text-xs mb-1">
+                            <span>NOISE AMOUNT</span>
+                            <span id="val-noise-amt" class="text-cyan-400">0.80</span>
+                        </div>
+                        <input type="range" id="slider-noise-amt" min="0" max="1" step="0.05" value="0.80">
+                    </div>
+                    <div>
+                        <div class="flex justify-between text-xs mb-1">
+                            <span>RESONANCE</span>
+                            <span id="val-resonance" class="text-cyan-400">3.7</span>
+                        </div>
+                        <input type="range" id="slider-resonance" min="0.5" max="5" step="0.1" value="3.7">
+                    </div>
+                    <div>
+                        <div class="flex justify-between text-xs mb-1">
+                            <span>ACCELERATION SENSITIVITY</span>
+                            <span id="val-accel-sens" class="text-cyan-400">0.05</span>
+                        </div>
+                        <input type="range" id="slider-accel-sens" min="0.01" max="0.15" step="0.01" value="0.05">
+                        <p class="text-[10px] text-gray-500 mt-1">Lower = slower ramp up, Higher = instant</p>
+                    </div>
+                </div>
+            </div>
+            <button id="toggle-advanced" class="btn-tech w-full mt-2">SHOW ADVANCED</button>
+
+            <div class="panel-header mt-6">Speed & RPM Config</div>
+            <div class="bg-black p-3 border border-gray-800 mt-2" id="speed-rpm-config" style="display: none;">
+                <div class="space-y-3">
+                    <div>
+                        <div class="flex justify-between text-xs mb-1">
+                            <span>MAX SPEED (km/h)</span>
+                            <span id="val-max-speed-kmh" class="text-cyan-400">300</span>
+                        </div>
+                        <input type="range" id="slider-max-speed-kmh" min="100" max="400" step="10" value="300">
+                    </div>
+                    <div>
+                        <div class="flex justify-between text-xs mb-1">
+                            <span>MAX SPEED (mph)</span>
+                            <span id="val-max-speed-mph" class="text-cyan-400">180</span>
+                        </div>
+                        <input type="range" id="slider-max-speed-mph" min="60" max="250" step="5" value="180">
+                    </div>
+                    <div>
+                        <div class="flex justify-between text-xs mb-1">
+                            <span>RPM START</span>
+                            <span id="val-rpm-start" class="text-cyan-400">0</span>
+                        </div>
+                        <input type="range" id="slider-rpm-start" min="0" max="2000" step="100" value="0">
+                    </div>
+                    <div>
+                        <div class="flex justify-between text-xs mb-1">
+                            <span>RPM END</span>
+                            <span id="val-rpm-end" class="text-cyan-400">9000</span>
+                        </div>
+                        <input type="range" id="slider-rpm-end" min="6000" max="12000" step="100" value="9000">
+                    </div>
+                </div>
+            </div>
+            <button id="toggle-speed-config" class="btn-tech w-full mt-2">SHOW SPEED/RPM CONFIG</button>
+
+            <div class="panel-header mt-6">Export Audio</div>
+            <div class="bg-black p-3 border border-gray-800 mt-2">
+                <div class="flex items-center justify-between mb-2" id="rec-status">
+                    <span class="text-xs">STATUS</span>
+                    <div class="rec-dot"></div>
+                </div>
+                <div class="grid grid-cols-2 gap-2">
+                    <button id="btn-record" class="btn-danger">REC</button>
+                    <button id="btn-stop" class="btn-tech" disabled>STOP & SAVE</button>
+                </div>
+                <p class="text-[10px] text-gray-500 mt-2">
+                    Records direct audio stream. Use slider below to set RPM state before recording.
+                </p>
+            </div>
+        </div>
+
+        <!-- CENTER PANEL: PISTON VISUALIZER -->
+        <div class="panel" id="visualizer-panel">
+            <div class="panel-header absolute top-0 left-0 w-full z-10 bg-opacity-50">Combustion Chamber</div>
+            <canvas id="engine-canvas" class="w-full h-full block" style="position: absolute; z-index: 1;"></canvas>
+            <!-- Engine Video Visualizer (V3-style): hidden video + canvas overlay -->
+            <div id="gif-container" style="position: absolute; width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; z-index: 2; opacity: 0.4; transition: opacity 0.3s, filter 0.3s; visibility: visible;">
+                <video id="engine-video" muted loop playsinline preload="auto" crossorigin="anonymous"
+                       style="position: absolute; width: 100%; height: 100%; top: 0; left: 0; display: none; background: transparent; z-index: 1;"></video>
+                <canvas id="engine-video-canvas" style="position: absolute; width: 100%; height: 100%; top: 0; left: 0; display: none; background: transparent; z-index: 2;"></canvas>
+                <!-- Fallback GIF (used when MP4 is missing) -->
+                <img id="engine-video-fallback" src="./V8-Firing.gif" alt="Engine Visualizer Fallback"
+                     style="position: absolute; width: 100%; height: 100%; top: 0; left: 0; display: none; background: transparent; z-index: 2; object-fit: cover; mix-blend-mode: screen;" />
+                <div id="engine-video-status" style="position: absolute; bottom: 8px; left: 8px; color: #9ddcff; font-size: 12px; letter-spacing: 0.3px; z-index: 3; pointer-events: none; text-shadow: 0 1px 3px rgba(0,0,0,0.6); display: none;"></div>
+            </div>
+            <!-- Directional Arrow Indicator (Top Right) -->
+            <div id="direction-indicator" style="position: absolute; top: 10px; right: 10px; z-index: 20; width: 60px; height: 60px; display: flex; align-items: center; justify-content: center;">
+                <svg id="direction-arrow" width="50" height="50" viewBox="0 0 50 50" style="transition: transform 0.2s, filter 0.2s;">
+                    <defs>
+                        <filter id="glow-green">
+                            <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
+                            <feMerge>
+                                <feMergeNode in="coloredBlur"/>
+                                <feMergeNode in="SourceGraphic"/>
+                            </feMerge>
+                        </filter>
+                        <filter id="glow-red">
+                            <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
+                            <feMerge>
+                                <feMergeNode in="coloredBlur"/>
+                                <feMergeNode in="SourceGraphic"/>
+                            </feMerge>
+                        </filter>
+                        <filter id="glow-brake">
+                            <feGaussianBlur stdDeviation="4" result="coloredBlur"/>
+                            <feMerge>
+                                <feMergeNode in="coloredBlur"/>
+                                <feMergeNode in="SourceGraphic"/>
+                            </feMerge>
+                        </filter>
+                    </defs>
+                    <!-- Arrow pointing up by default -->
+                    <path id="arrow-path" d="M 25 5 L 35 20 L 30 20 L 30 40 L 20 40 L 20 20 L 15 20 Z" 
+                          fill="#66fcf1" stroke="#66fcf1" stroke-width="1" 
+                          style="transition: fill 0.2s, stroke 0.2s, filter 0.2s;"/>
+                </svg>
+            </div>
+        </div>
+
+        <!-- RIGHT PANEL: GAUGES -->
+        <div class="panel" id="gauges-panel">
+            <div class="panel-header w-full text-center">Telemetry</div>
+            
+            <!-- SPEEDOMETER GAUGE (Larger, outer) -->
+            <div class="meter meter--speed meter--big-label" id="gauge-speed"></div>
+            
+            <!-- RPM GAUGE -->
+            <div class="meter meter--rpm meter--big-label" id="gauge-rpm"></div>
+
+            <!-- MANIFOLD PRESSURE (Load %) -->
+            <div class="meter meter--big-label" id="gauge-map"></div>
+            
+            <!-- TEMPERATURE GAUGE (Linear Thermometer) -->
+            <div class="w-full px-4 mt-1">
+                <div class="text-xs text-center text-cyan-400 mb-1">ENGINE TEMP (°F)</div>
+                <div class="relative w-full h-7 bg-gray-800 border border-gray-700 rounded overflow-hidden">
+                    <div id="temp-bar" class="absolute left-0 top-0 h-full bg-gradient-to-r from-cyan-500 via-yellow-500 to-red-600 transition-all duration-100" style="width: 0%;"></div>
+                    <div class="absolute inset-0 flex items-center justify-center">
+                        <span id="temp-value" class="text-xs font-mono text-white z-10">150°F</span>
+                    </div>
+                </div>
+                <div class="flex justify-between text-[10px] text-gray-500 mt-1">
+                    <span>150°F</span>
+                    <span>200°F</span>
+                    <span>250°F</span>
+                </div>
+            </div>
+            
+            <!-- Engine Failure System -->
+            <div class="w-full px-4 mt-1">
+                <label class="flex items-center gap-2 cursor-pointer justify-center">
+                    <input type="checkbox" id="engine-failure-toggle" class="w-4 h-4 accent-red-500">
+                    <span class="text-xs text-red-400">Engine Failure Mode</span>
+                </label>
+                <div class="text-[10px] text-gray-500 text-center mt-0.5">Can damage engine beyond use</div>
+            </div>
+            
+            <!-- Reset Button -->
+            <div class="w-full px-4 mt-1">
+                <button id="engine-reset-btn" class="w-full py-1 px-3 bg-red-600 hover:bg-red-700 text-white text-xs font-bold rounded transition-colors">
+                    RESET ENGINE
+                </button>
+            </div>
+            
+            <!-- Speed Unit Toggle -->
+            <div class="w-full px-4 mt-1">
+                <label class="flex items-center gap-2 cursor-pointer justify-center">
+                    <input type="checkbox" id="speed-unit-toggle" class="w-4 h-4 accent-cyan-400">
+                    <span class="text-xs">MPH</span>
+                </label>
+            </div>
+
+             <!-- RADIAL SLIDER TESTER -->
+            <div class="w-full px-4 mt-1 mb-1">
+                <div class="text-xs text-center text-cyan-400 mb-1">QUICK TEST SLIDER</div>
+                <input type="range" id="radial-tester" min="0" max="8000" value="0">
+                <div class="flex justify-between text-[10px] text-gray-500 mt-1">
+                    <span>IDLE</span>
+                    <span>MED</span>
+                    <span>REDLINE</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- BOTTOM CENTER: WAVEFORM & LOGS -->
+        <div class="panel" id="waveform-panel">
+            <div class="panel-header">Audio Waveform</div>
+            <canvas id="wave-canvas" class="w-full h-full"></canvas>
+        </div>
+
+    </div>
+    
+    <!-- FOOTER -->
+    <div style="position: fixed; bottom: 0; left: 0; right: 0; background: var(--bg-dark); border-top: 1px solid var(--accent-dim); padding: clamp(6px, 1vw, 8px) clamp(15px, 2.5vw, 20px); text-align: center; font-size: clamp(9px, 1.1vw, 11px); color: var(--text-light); z-index: 1000; box-sizing: border-box; max-width: 100vw;">
+        <div>Iron Will Interactive 2025</div>
+        <div style="color: var(--accent-dim); font-size: clamp(8px, 1vw, 10px); margin-top: clamp(1px, 0.2vw, 2px);">Developer: Asterisk</div>
+    </div>
+
+<script>
+    // ==========================================
+    // METER CLASS (from working speedometer)
+    // ==========================================
+    let Meter = function Meter($elm, config) {
+        let $needle, $value;
+        
+        let steps = (config.valueMax - config.valueMin) / config.valueStep,
+                angleStep = (config.angleMax - config.angleMin) / steps;
+        
+        let margin = 10;
+        let angle = 0;
+        
+        let value2angle = function(value) {
+            let normalizedValue = Math.max(config.valueMin, Math.min(config.valueMax, value));
+            let angle = ((normalizedValue / (config.valueMax - config.valueMin)) * (config.angleMax - config.angleMin) + config.angleMin);
+            return angle;
+        };
+        
+        this.setValue = function(v) {
+            $needle.style.transform = "translate3d(-50%, 0, 0) rotate(" + Math.round(value2angle(v)) + "deg)";
+            if ($value) {
+                $value.innerHTML = config.needleFormat(v);
+            }
+        };
+        
+        this.updateConfig = function(newConfig) {
+            Object.assign(config, newConfig);
+            steps = (config.valueMax - config.valueMin) / config.valueStep;
+            angleStep = (config.angleMax - config.angleMin) / steps;
+        };
+        
+        let switchLabel = function(e) {
+            e.target.closest(".meter").classList.toggle('meter--big-label');
+        };
+        
+        let makeElement = function(parent, className, innerHtml, style) {
+            let	e = document.createElement('div');
+            e.className = className;
+
+            if (innerHtml) {
+                e.innerHTML = innerHtml;
+            }
+
+            if (style) {
+                for (var prop in style) {
+                    e.style[prop] = style[prop];
+                }
+            }
+
+            parent.appendChild(e);
+            return e;
+        };
+
+        makeElement($elm, "label label-unit", config.valueUnit);
+
+        for (let n=0; n < steps+1; n++) {
+            let value = config.valueMin + n * config.valueStep;
+            angle = config.angleMin + n * angleStep;
+            
+            let redzoneClass = "";
+            if (config.valueRed && value > config.valueRed) {
+                redzoneClass = " redzone";
+            }
+            
+            makeElement($elm, "grad grad--" + n + redzoneClass, config.labelFormat(value), {
+                left: (50 - (50 - margin) * Math.sin(angle * (Math.PI / 180))) + "%",
+                top: (50 + (50 - margin) * Math.cos(angle * (Math.PI / 180))) + "%"
+            });	
+
+            makeElement($elm, "grad-tick grad-tick--" + n + redzoneClass, "", {
+                left: (50 - 50 * Math.sin(angle * (Math.PI / 180))) + "%",
+                top: (50 + 50 * Math.cos(angle * (Math.PI / 180))) + "%",
+                transform: "translate3d(-50%, 0, 0) rotate(" + (angle + 180) + "deg)"
+            });
+
+            angle += angleStep / 2;
+            
+            if (angle < config.angleMax) {
+                makeElement($elm, "grad-tick grad-tick--half grad-tick--" + n + redzoneClass, "", {
+                    left: (50 - 50 * Math.sin(angle * (Math.PI / 180))) + "%",
+                    top: (50 + 50 * Math.cos(angle * (Math.PI / 180))) + "%",
+                    transform: "translate3d(-50%, 0, 0) rotate(" + (angle + 180) + "deg)"
+                });
+            }
+
+            angle += angleStep / 4;
+            
+            if (angle < config.angleMax) {
+                makeElement($elm, "grad-tick grad-tick--quarter grad-tick--" + n + redzoneClass, "", {
+                    left: (50 - 50 * Math.sin(angle * (Math.PI / 180))) + "%",
+                    top: (50 + 50 * Math.cos(angle * (Math.PI / 180))) + "%",
+                    transform: "translate3d(-50%, 0, 0) rotate(" + (angle + 180) + "deg)"
+                });
+            }
+
+            angle -= angleStep / 2;
+            
+            if (angle < config.angleMax) {
+                makeElement($elm, "grad-tick grad-tick--quarter grad-tick--" + n + redzoneClass, "", {
+                    left: (50 - 50 * Math.sin(angle * (Math.PI / 180))) + "%",
+                    top: (50 + 50 * Math.cos(angle * (Math.PI / 180))) + "%",
+                    transform: "translate3d(-50%, 0, 0) rotate(" + (angle + 180) + "deg)"
+                });
+            }
+        }
+        
+        angle = value2angle(config.value);
+        
+        $needle = makeElement($elm, "needle", "", {
+            transform: "translate3d(-50%, 0, 0) rotate(" + angle + "deg)"
+        });
+        
+        let $axle = makeElement($elm, "needle-axle");
+        $axle.addEventListener("click", switchLabel);
+        let $labelValue = makeElement($elm, "label label-value", "<div>" + config.labelFormat(config.value) + "</div>" + "<span>" + config.labelUnit + "</span>");
+        $labelValue.addEventListener("click", switchLabel);
+        
+        $value = $elm.querySelector(".label-value div");
+    };
+
+    // ==========================================
+    // 1. INITIALIZATION & SETUP
+    // ==========================================
+    const startBtn = document.getElementById('ignition-btn');
+    const statusDisp = document.getElementById('status-display');
+    
+    // Initialize Meters
+    let speedMeter = null;
+    let rpmMeter = null;
+    let mapMeter = null;
+    
+    function initGauges() {
+        // Get elements inside function to ensure they exist
+        const speedGaugeEl = document.getElementById('gauge-speed');
+        const rpmGaugeEl = document.getElementById('gauge-rpm');
+        const mapGaugeEl = document.getElementById('gauge-map');
+        
+        if (!speedGaugeEl || !rpmGaugeEl || !mapGaugeEl) {
+            console.error('Gauge elements not found');
+            return;
+        }
+        // Speedometer - km/h or mph
+        if (speedGaugeEl) {
+            const maxSpeed = SPEED_UNIT_MPH ? MAX_SPEED_MPH : MAX_SPEED_KMH;
+            const unit = SPEED_UNIT_MPH ? "MPH" : "km/h";
+            speedGaugeEl.innerHTML = ''; // Clear if reinitializing
+            speedMeter = new Meter(speedGaugeEl, {
+                value: 0, // Default visible value
+                valueMin: 0,
+                valueMax: maxSpeed,
+                valueStep: maxSpeed / 10,
+                valueUnit: `<div>Speed</div><span>${unit}</span>`,
+                angleMin: 30,
+                angleMax: 330,
+                labelUnit: unit,
+                labelFormat: function(v) { return Math.round(v); },
+                needleFormat: function(v) { return Math.round(v); },
+                valueRed: maxSpeed * 0.8
+            });
+            // Ensure default value is visible
+            if (speedMeter) {
+                speedMeter.setValue(0);
+            }
+        }
+        
+        // RPM Gauge - 0-9 instead of 1-9, using configured range
+        if (rpmGaugeEl) {
+            const rpmRange = RPM_END - RPM_START;
+            const rpmStep = rpmRange / 9; // 0-9 = 10 major ticks
+            rpmGaugeEl.innerHTML = ''; // Clear if reinitializing
+            const defaultRPM = IDLE_RPM; // Show idle RPM by default
+            rpmMeter = new Meter(rpmGaugeEl, {
+                value: defaultRPM,
+                valueMin: RPM_START,
+                valueMax: RPM_END,
+                valueStep: rpmStep,
+                valueUnit: "<div>RPM</div><span>x1000</span>",
+                angleMin: 30,
+                angleMax: 330,
+                labelUnit: "RPM",
+                labelFormat: function(v) { return Math.round(v / 1000); },
+                needleFormat: function(v) { return Math.round(v / 100) * 100; },
+                valueRed: RPM_END * 0.83 // Redline at ~83% of max
+            });
+            // Ensure default value is visible
+            if (rpmMeter) {
+                rpmMeter.setValue(defaultRPM);
+            }
+        }
+        
+        // Load Gauge
+        if (mapGaugeEl) {
+            mapGaugeEl.innerHTML = ''; // Clear if reinitializing
+            mapMeter = new Meter(mapGaugeEl, {
+                value: 0, // Default visible value
+                valueMin: 0,
+                valueMax: 100,
+                valueStep: 20,
+                valueUnit: "<div>Load</div><span>%</span>",
+                angleMin: 30,
+                angleMax: 330,
+                labelUnit: "%",
+                labelFormat: function(v) { return Math.round(v); },
+                needleFormat: function(v) { return Math.round(v); },
+                valueRed: 80
+            });
+            // Ensure default value is visible
+            if (mapMeter) {
+                mapMeter.setValue(0);
+            }
+        }
+    }
+    
+    // ==========================================
+    // INI PRESET LOADING SYSTEM (defined early so it can be called on startup)
+    // ==========================================
+    async function loadEnginePreset(engineType) {
+        try {
+            const response = await fetch(`./presets/${engineType}.ini`);
+            if (!response.ok) {
+                console.warn(`Preset file not found: ./presets/${engineType}.ini, using defaults`);
+                return;
+            }
+            const iniText = await response.text();
+            const lines = iniText.split('\n');
+            let currentSection = '';
+            
+            for (let line of lines) {
+                line = line.trim();
+                if (!line || line.startsWith(';') || line.startsWith('#')) continue;
+                
+                if (line.startsWith('[') && line.endsWith(']')) {
+                    currentSection = line.slice(1, -1).toLowerCase();
+                    continue;
+                }
+                
+                const [key, value] = line.split('=').map(s => s.trim());
+                if (!key || !value) continue;
+                
+                // Parse value (handle numbers, booleans, strings)
+                let parsedValue = value;
+                if (value === 'true') parsedValue = true;
+                else if (value === 'false') parsedValue = false;
+                else if (!isNaN(value) && value !== '') parsedValue = parseFloat(value);
+                
+                // Apply the value based on section and key
+                if (currentSection === 'engine') {
+                    if (key === 'TYPE') {
+                        ENGINE_TYPE = parsedValue.toLowerCase();
+                    } else if (key === 'VIDEO_PATH') {
+                        ENGINE_VIDEO_PATH = parsedValue; // Store MP4 video path from INI
+                    }
+                } else if (currentSection === 'audio') {
+                    if (key === 'BASE_PITCH') BASE_PITCH = parsedValue;
+                    else if (key === 'PITCH_RANGE') PITCH_RANGE = parsedValue;
+                    else if (key === 'DISTORTION_STRENGTH') DISTORTION_STRENGTH = parsedValue;
+                    else if (key === 'DISTORTION_AMT') DISTORTION_AMT = parsedValue;
+                    else if (key === 'HIGHPASS_FREQ') HIGHPASS_FREQ = parsedValue;
+                    else if (key === 'LOWPASS_FREQ') LOWPASS_FREQ = parsedValue;
+                    else if (key === 'SUB_OSC_VOL') SUB_OSC_VOL = parsedValue;
+                    else if (key === 'NOISE_AMOUNT') NOISE_AMOUNT = parsedValue;
+                    else if (key === 'RESONANCE') RESONANCE = parsedValue;
+                } else if (currentSection === 'performance') {
+                    if (key === 'REV_LIMIT') REV_LIMIT = parsedValue;
+                    else if (key === 'BACKFIRE_CHANCE') BACKFIRE_CHANCE = parsedValue;
+                    else if (key === 'GOVERNOR_ENABLED') GOVERNOR_ENABLED = parsedValue;
+                    else if (key === 'ACCELERATION_SENSITIVITY') ACCELERATION_SENSITIVITY = parsedValue;
+                } else if (currentSection === 'gauges') {
+                    if (key === 'MAX_SPEED_KMH') MAX_SPEED_KMH = parsedValue;
+                    else if (key === 'MAX_SPEED_MPH') MAX_SPEED_MPH = parsedValue;
+                    else if (key === 'RPM_START') RPM_START = parsedValue;
+                    else if (key === 'RPM_END') RPM_END = parsedValue;
+                }
+            }
+            
+            // Update UI sliders and displays to match loaded values
+            updateUIFromPreset();
+            
+            // Update audio engine if it's initialized
+            if (synthEngine && synthEngine.distortion) {
+                synthEngine.distortion.distortion = DISTORTION_STRENGTH;
+            }
+            if (synthEngine && synthEngine.highpass) {
+                synthEngine.highpass.frequency.value = HIGHPASS_FREQ;
+            }
+            if (synthEngine && synthEngine.lowpass) {
+                synthEngine.lowpass.frequency.value = LOWPASS_FREQ;
+            }
+            
+            // Refresh video visualizer for current preset
+            updateGifVisualizer(currentRPM);
+            
+            console.log(`Loaded preset: ${engineType.toUpperCase()} - VIDEO: ${ENGINE_VIDEO_PATH}`);
+        } catch (error) {
+            console.error(`Error loading preset ${engineType}:`, error);
+        }
+    }
+    
+    function updateUIFromPreset() {
+        // Update engine type display
+        if (document.getElementById('val-engine-type')) {
+            document.getElementById('val-engine-type').innerText = ENGINE_TYPE.toUpperCase();
+        }
+        if (document.getElementById('engine-type')) {
+            document.getElementById('engine-type').value = ENGINE_TYPE;
+        }
+        
+        // Update audio sliders
+        if (document.getElementById('slider-base-pitch')) {
+            document.getElementById('slider-base-pitch').value = BASE_PITCH;
+            document.getElementById('val-base-pitch').innerText = BASE_PITCH;
+        }
+        
+        if (document.getElementById('slider-pitch-range')) {
+            document.getElementById('slider-pitch-range').value = PITCH_RANGE;
+            document.getElementById('val-pitch-range').innerText = PITCH_RANGE.toFixed(1);
+        }
+        
+        if (document.getElementById('slider-distortion-strength')) {
+            document.getElementById('slider-distortion-strength').value = DISTORTION_STRENGTH;
+            document.getElementById('val-distortion-strength').innerText = DISTORTION_STRENGTH.toFixed(2);
+        }
+        if (document.getElementById('slider-dist')) {
+            document.getElementById('slider-dist').value = DISTORTION_AMT;
+            document.getElementById('val-dist').innerText = DISTORTION_AMT.toFixed(2);
+        }
+        
+        if (document.getElementById('slider-highpass')) {
+            document.getElementById('slider-highpass').value = HIGHPASS_FREQ;
+            document.getElementById('val-highpass').innerText = HIGHPASS_FREQ;
+        }
+        
+        if (document.getElementById('slider-lowpass')) {
+            document.getElementById('slider-lowpass').value = LOWPASS_FREQ;
+            document.getElementById('val-lowpass').innerText = LOWPASS_FREQ;
+        }
+        
+        if (document.getElementById('slider-sub-vol')) {
+            document.getElementById('slider-sub-vol').value = SUB_OSC_VOL;
+            document.getElementById('val-sub-vol').innerText = SUB_OSC_VOL;
+        }
+        
+        if (document.getElementById('slider-noise-amt')) {
+            document.getElementById('slider-noise-amt').value = NOISE_AMOUNT;
+            document.getElementById('val-noise-amt').innerText = NOISE_AMOUNT.toFixed(2);
+        }
+        
+        if (document.getElementById('slider-resonance')) {
+            document.getElementById('slider-resonance').value = RESONANCE;
+            document.getElementById('val-resonance').innerText = RESONANCE.toFixed(1);
+        }
+        
+        if (document.getElementById('slider-accel-sens')) {
+            document.getElementById('slider-accel-sens').value = ACCELERATION_SENSITIVITY;
+            document.getElementById('val-accel-sens').innerText = ACCELERATION_SENSITIVITY.toFixed(2);
+        }
+        
+        // Update performance controls
+        const limiterSlider = document.getElementById('slider-limiter');
+        if (limiterSlider) {
+            limiterSlider.value = REV_LIMIT;
+            const limiterVal = document.getElementById('val-limiter');
+            if (limiterVal) limiterVal.innerText = REV_LIMIT;
+        }
+        
+        if (document.getElementById('slider-backfire')) {
+            document.getElementById('slider-backfire').value = BACKFIRE_CHANCE;
+            document.getElementById('val-backfire').innerText = BACKFIRE_CHANCE.toFixed(2);
+        }
+        
+        const governorCheckbox = document.getElementById('governor-checkbox');
+        if (governorCheckbox) {
+            governorCheckbox.checked = GOVERNOR_ENABLED;
+        }
+        
+        // Update gauge config
+        if (document.getElementById('slider-max-speed-kmh')) {
+            document.getElementById('slider-max-speed-kmh').value = MAX_SPEED_KMH;
+            document.getElementById('val-max-speed-kmh').innerText = MAX_SPEED_KMH;
+        }
+        
+        if (document.getElementById('slider-max-speed-mph')) {
+            document.getElementById('slider-max-speed-mph').value = MAX_SPEED_MPH;
+            document.getElementById('val-max-speed-mph').innerText = MAX_SPEED_MPH;
+        }
+        
+        if (document.getElementById('slider-rpm-start')) {
+            document.getElementById('slider-rpm-start').value = RPM_START;
+            document.getElementById('val-rpm-start').innerText = RPM_START;
+        }
+        
+        if (document.getElementById('slider-rpm-end')) {
+            document.getElementById('slider-rpm-end').value = RPM_END;
+            document.getElementById('val-rpm-end').innerText = RPM_END;
+        }
+        
+        // Update gauges with new ranges
+        if (typeof speedMeter !== 'undefined' && speedMeter) speedMeter.setValue(currentSpeed);
+        if (typeof rpmMeter !== 'undefined' && rpmMeter) rpmMeter.setValue(currentRPM);
+        if (typeof mapMeter !== 'undefined' && mapMeter) mapMeter.setValue(engineLoad * 100);
+    }
+    
+    // Initialize meters when DOM is ready
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', async () => {
+            initGauges();
+            // Load default V8 preset on startup
+            await loadEnginePreset('v8');
+        });
+    } else {
+        // DOM already loaded, initialize immediately
+        initGauges();
+        // Load default V8 preset on startup
+        loadEnginePreset('v8');
+    }
+    
+    // Physics / Logic Variables
+    let isEngineRunning = false;
+    let currentRPM = 0;
+    let targetRPM = 0;
+    let engineLoad = 0;
+    
+    // Input state tracking
+    let isSliderActive = false;
+    let isThrottlePressed = false;
+    let isSpacePressed = false;
+    let isLeftArrowPressed = false;
+    let isRightArrowPressed = false;
+    let isDownArrowPressed = false;
+    let isDrifting = false; // True when drift input combination is active
+    let wasDrifting = false; // Track previous drift state to detect when drift starts
+    
+    // Settings
+    const IDLE_RPM = 850;
+    let REV_LIMIT = 7500;
+    let DISTORTION_AMT = 0.2;
+    let BACKFIRE_CHANCE = 0.3;
+    let GOVERNOR_ENABLED = true;
+    let limiterOscillation = 0; // For oscillating effect at limiter
+    
+    // Heat/Overheating System
+    let engineHeat = 0; // 0-100, builds up when throttle held
+    let engineTempF = 150; // Engine temperature in Fahrenheit (150-250°F range)
+    let isOverheating = false; // True when heat > 80
+    let engineFailed = false; // True when engine is damaged beyond use
+    const HEAT_BUILDUP_RATE = 0.25; // Reduced heat buildup rate
+    const HEAT_COOLDOWN_RATE = 0.12; // Heat lost per frame when not overheating (faster cooling)
+    const HEAT_COOLDOWN_AT_LOW_RPM = 0.25; // Extra cooling when at low RPM
+    const OVERHEAT_THRESHOLD = 80; // Heat level to trigger overheating
+    const OVERHEAT_COOLDOWN_THRESHOLD = 60; // Heat must drop below this to stop overheating cycle
+    const TEMP_MIN_F = 150; // Minimum temperature (normal operating)
+    const TEMP_MAX_F = 250; // Maximum temperature (overheating)
+    const ENGINE_FAILURE_THRESHOLD = 95; // Heat level that causes engine failure (if enabled)
+    let lastGear = 0;
+    
+    // Speed Slip Cycle System
+    let speedSlipCycle = 0; // Tracks slip cycles (0 = no slip, increases with each slip)
+    let speedSlipCycleCount = 0; // Counts how many times it has slipped in current cycle
+    const MAX_SLIP_CYCLES = 3; // Slip 3 times then recover
+    let stableBaseSpeed = 0; // Stable reference speed to prevent oscillation issues
+    let driftSlipStartTime = 0; // Track when drift slip started
+    const MAX_DRIFT_SLIP_TIME = 5000; // Maximum 5 seconds of continuous drift slip
+    let driftRecoveryTime = 0; // Track when drift recovery started
+    const DRIFT_RECOVERY_COOLDOWN = 1000; // 1 second cooldown after recovery before drift can trigger again
+    let isInDriftRecovery = false; // True when drift is in recovery phase
+    
+    // Transmission & Speed Slip Thresholds
+    let transmissionMode = 'automatic'; // 'automatic' or 'manual'
+    let currentGear = 0; // 0 = Park, -1 = Reverse, 1-5 = Forward gears
+    const AUTO_SLIP_THRESHOLD_KMH = 210; // Automatic mode: slip starts at 210 km/h
+    const AUTO_SLIP_THRESHOLD_MPH = 126; // Automatic mode: slip starts at 126 mph
+    // Manual mode: per-gear speed limits (in km/h, will convert to mph if needed)
+    const MANUAL_GEAR_SPEED_LIMITS = {
+        1: 60,   // Gear 1: 60 km/h (37 mph)
+        2: 100,  // Gear 2: 100 km/h (62 mph)
+        3: 140,  // Gear 3: 140 km/h (87 mph)
+        4: 180,  // Gear 4: 180 km/h (112 mph)
+        5: 220   // Gear 5: 220 km/h (137 mph)
+    };
+    
+    // Advanced Engine Parameters
+    let ENGINE_TYPE = 'v8'; // v6, v8, v10, v12
+    // Prefer local asset path for V2; fall back handled below if missing
+    let ENGINE_VIDEO_PATH = './assets/Engines/V/V8.mp4'; // MP4 video path for current engine type
+    let BASE_PITCH = 16; // Base frequency (lowered for more realistic, deeper sound)
+    let PITCH_RANGE = 1.9; // Multiplier for pitch range (lowered - less pitch sweep)
+    let DISTORTION_STRENGTH = 0.82;
+    let HIGHPASS_FREQ = 150;
+    let LOWPASS_FREQ = 1470;
+    let SUB_OSC_VOL = -11;
+    let NOISE_AMOUNT = 0.80;
+    let RESONANCE = 3.7;
+    let ACCELERATION_SENSITIVITY = 0.05; // How fast RPM increases (0.01 = slow, 0.1 = instant)
+    
+    // Speedometer & RPM Configuration
+    let SPEED_UNIT_MPH = false; // false = km/h, true = mph
+    let MAX_SPEED_KMH = 300; // Maximum speed in km/h
+    let MAX_SPEED_MPH = 180; // Maximum speed in mph
+    let RPM_START = 0; // Starting RPM for gauge
+    let RPM_END = 9000; // Ending RPM for gauge
+    let currentSpeed = 0; // Current speed in km/h
+
+    // ==========================================
+    // 2. AUDIO ENGINE (Tone.js)
+    // ==========================================
+    let synthEngine = {};
+    let recorder = null;
+    let audioChunks = [];
+    let analyser;
+
+    async function initAudio() {
+        await Tone.start();
+        
+        // 1. MASTER CHAIN
+        const limiter = new Tone.Limiter(-1).toDestination();
+        const masterGain = new Tone.Gain(savedVolume / 100).connect(limiter);
+        
+        // 2. DISTORTION (The "Badass" element)
+        const distortion = new Tone.Distortion(DISTORTION_STRENGTH).connect(masterGain);
+        const highpass = new Tone.Filter(HIGHPASS_FREQ, "highpass").connect(distortion);
+        const lowpass = new Tone.Filter(LOWPASS_FREQ, "lowpass").connect(highpass);
+        
+        // 3. GENERATORS - Multiple oscillators for realistic engine harmonics
+        // Main fundamental (Sawtooth for rich harmonics)
+        const oscMain = new Tone.OmniOscillator({
+            type: "sawtooth",
+            frequency: BASE_PITCH,
+        }).start();
+        
+        // Harmonic oscillator (for engine-specific interval relationships)
+        // This will be set based on engine type: V8=octave, V10=major 10th, V12=perfect 12th
+        const oscHarmonic = new Tone.OmniOscillator({
+            type: "triangle", // Triangle for smoother blend
+            frequency: BASE_PITCH * 2, // Default octave (will be adjusted per engine)
+            volume: -8
+        }).start();
+        
+        // Sub oscillator (lower octave for body/rumble)
+        const oscSub = new Tone.OmniOscillator({
+            type: "square",
+            frequency: BASE_PITCH * 0.5, // One octave below
+            volume: SUB_OSC_VOL
+        }).start();
+
+        // Additional texture oscillator (for more complex harmonics)
+        const oscTexture = new Tone.OmniOscillator({
+            type: "sawtooth",
+            frequency: BASE_PITCH * 1.5, // Fifth interval for texture
+            volume: -15
+        }).start();
+
+        // Intake Noise (ORIGINAL - unchanged)
+        const noise = new Tone.Noise("brown").start();
+        const noiseFilter = new Tone.Filter(800, "bandpass").connect(masterGain);
+        const noiseGain = new Tone.Gain(0).connect(noiseFilter);
+        noise.connect(noiseGain);
+
+        // Connect Oscillators through filters (ORIGINAL - unchanged)
+        oscMain.connect(lowpass);
+        oscHarmonic.connect(lowpass);
+        oscSub.connect(lowpass);
+        oscTexture.connect(lowpass);
+        
+        // ==========================================
+        // NEW: Engine-sim inspired OPTIONAL layers (can be mixed in/out)
+        // These are ADDITIONAL layers, NOT replacing existing sound
+        // ==========================================
+        
+        // Optional Layer 1: Exhaust convolution layer (engine-sim technique)
+        // Generate realistic exhaust-like impulse response
+        const convolverBufferLength = 16384;
+        const convolverBuffer = Tone.context.createBuffer(1, convolverBufferLength, Tone.context.sampleRate);
+        const convolverData = convolverBuffer.getChannelData(0);
+        
+        for (let i = 0; i < convolverBufferLength; i++) {
+            const t = i / Tone.context.sampleRate;
+            const mainPulse = Math.exp(-t * 8) * Math.sin(2 * Math.PI * 80 * t);
+            const resonance = Math.exp(-t * 4) * Math.sin(2 * Math.PI * 120 * t) * 0.6;
+            const highFreq = Math.exp(-t * 20) * (Math.random() * 2 - 1) * 0.2;
+            convolverData[i] = (mainPulse + resonance + highFreq) * 0.3;
+        }
+        
+        const exhaustConvolver = new Tone.Convolver(convolverBuffer);
+        exhaustConvolver.normalize = true;
+        const exhaustConvolverGain = new Tone.Gain(0).connect(masterGain); // Start at 0 (off) - can be controlled
+        exhaustConvolver.connect(exhaustConvolverGain);
+        
+        // Route a copy of main oscillator through exhaust convolver (for optional mixing)
+        // This does NOT affect the original signal - it's a parallel path
+        const exhaustCopyGain = new Tone.Gain(0.5).connect(exhaustConvolver); // Copy at 50% level
+        oscMain.connect(exhaustCopyGain); // This is in addition to the original connection
+        
+        // Optional Layer 2: Derivative-based high-frequency layer (engine-sim dF_F_mix)
+        const derivativeHighpass = new Tone.Filter(800, "highpass");
+        const derivativeGain = new Tone.Gain(0).connect(masterGain); // Start at 0 (off)
+        oscMain.connect(derivativeHighpass); // This is in addition to the original connection
+        derivativeHighpass.connect(derivativeGain);
+        
+        // Optional Layer 3: Enhanced air noise layer (engine-sim style)
+        const enhancedNoise = new Tone.Noise("white").start();
+        const enhancedNoiseFilter = new Tone.Filter(2000, "lowpass").connect(masterGain);
+        const enhancedNoiseGain = new Tone.Gain(0).connect(enhancedNoiseFilter); // Start at 0 (off)
+        enhancedNoise.connect(enhancedNoiseGain);
+        
+        // Optional sound-library layers (disabled by default to avoid network aborts)
+        const ENABLE_SOUND_LIBRARY = false;
+        let smoothSoundGain, smoothSoundPlayers = [];
+        let archiveSoundGain, archiveSoundPlayers = [];
+        if (ENABLE_SOUND_LIBRARY) {
+            smoothSoundGain = new Tone.Gain(0).connect(masterGain);
+            const smoothSoundFiles = [
+                'reference/engine-sim/assets/sound-library/smooth/smooth_15.wav',
+                'reference/engine-sim/assets/sound-library/smooth/smooth_32.wav',
+                'reference/engine-sim/assets/sound-library/smooth/smooth_49.wav'
+            ];
+            smoothSoundFiles.forEach((file) => {
+                fetch(file, { method: 'HEAD' }).then(res => {
+                    if (res.ok) {
+                        const p = new Tone.Player({ url: file, loop: true, volume: -Infinity, playbackRate: 1.0 }).connect(smoothSoundGain);
+                        p.autostart = false;
+                        smoothSoundPlayers.push(p);
+                    }
+                }).catch(() => {});
+            });
+            archiveSoundGain = new Tone.Gain(0).connect(masterGain);
+            const archiveSoundFiles = [
+                'reference/engine-sim/assets/sound-library/archive/test_engine_14_eq_adjusted_16.wav',
+                'reference/engine-sim/assets/sound-library/archive/test_engine_16_eq_adjusted_16.wav',
+                'reference/engine-sim/assets/sound-library/archive/engine_02.wav'
+            ];
+            archiveSoundFiles.forEach((file) => {
+                fetch(file, { method: 'HEAD' }).then(res => {
+                    if (res.ok) {
+                        const p = new Tone.Player({ url: file, loop: true, volume: -Infinity, playbackRate: 1.0 }).connect(archiveSoundGain);
+                        p.autostart = false;
+                        archiveSoundPlayers.push(p);
+                    }
+                }).catch(() => {});
+            });
+        }
+
+        // 4. BACKFIRE FX
+        // MetalSynth for the "Pop" - intense backfire
+        const backfireSynth = new Tone.MetalSynth({
+            frequency: 200,
+            envelope: { attack: 0.001, decay: 0.1, release: 0.01 },
+            harmonicity: 5.1,
+            modulationIndex: 32,
+            resonance: 4000,
+            octaves: 1.5
+        }).connect(distortion);
+        
+        // Rev Limiter Pop - lighter pops for hitting limiter
+        const limiterPopSynth = new Tone.MetalSynth({
+            frequency: 150,
+            envelope: { attack: 0.001, decay: 0.05, release: 0.005 },
+            harmonicity: 4.5,
+            modulationIndex: 20,
+            resonance: 3000,
+            octaves: 1.2
+        }).connect(distortion);
+
+        // 5. ANALYSER (For Visuals)
+        analyser = new Tone.Waveform(256);
+        masterGain.connect(analyser);
+
+        // 6. RECORDING SETUP
+        const dest = Tone.context.createMediaStreamDestination();
+        masterGain.connect(dest);
+        recorder = new MediaRecorder(dest.stream);
+
+        recorder.ondataavailable = (e) => audioChunks.push(e.data);
+        recorder.onstop = () => {
+            const blob = new Blob(audioChunks, { type: 'audio/wav' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.style.display = 'none';
+            a.href = url;
+            a.download = `engine_export_${Date.now()}.wav`;
+            document.body.appendChild(a);
+            a.click();
+            window.URL.revokeObjectURL(url);
+            
+            // UI Reset
+            document.getElementById('rec-status').classList.remove('rec-active');
+            document.getElementById('btn-record').disabled = false;
+            document.getElementById('btn-stop').disabled = true;
+            statusDisp.innerText = "EXPORT COMPLETE // FILE DOWNLOADED";
+        };
+
+        // Save refs (ORIGINAL + optional new layers)
+        synthEngine = { 
+            // Original layers (unchanged)
+            oscMain, oscSub, oscHarmonic, oscTexture, 
+            lowpass, highpass, 
+            noiseGain, noiseFilter, 
+            distortion, backfireSynth, limiterPopSynth,
+            masterGain, // Master volume control
+            // NEW optional layers (start at 0 volume - can be mixed in)
+            exhaustConvolver, exhaustConvolverGain, exhaustCopyGain,
+            derivativeGain, derivativeHighpass,
+            enhancedNoise, enhancedNoiseGain, enhancedNoiseFilter,
+            smoothSoundGain, smoothSoundPlayers,
+            archiveSoundGain, archiveSoundPlayers
+        };
+        isEngineRunning = true;
+        
+        // Set initial idle
+        updateAudioPhysics(IDLE_RPM, 0);
+        
+        // Sync masterGain to slider value (preserves user's volume setting)
+        if (typeof updateVolumeUI === 'function') {
+            updateVolumeUI();
+        }
+    }
+
+    function triggerLimiterPop() {
+        if (!isEngineRunning) return;
+        // Low pitch explosion in exhaust pipe - high distortion
+        const savedDistortion = synthEngine.distortion.distortion;
+        synthEngine.distortion.distortion = 0.95; // Max distortion for explosion
+        
+        // Super low pitch like exhaust explosion
+        synthEngine.limiterPopSynth.frequency.value = 30 + Math.random() * 40; // Very low: 30-70 Hz
+        synthEngine.limiterPopSynth.volume.value = -8 + Math.random() * 4;
+        synthEngine.limiterPopSynth.modulationIndex = 35 + Math.random() * 10;
+        synthEngine.limiterPopSynth.resonance = 5000;
+        synthEngine.limiterPopSynth.triggerAttackRelease("32n");
+        
+        // Reset distortion after pop
+        setTimeout(() => {
+            synthEngine.distortion.distortion = savedDistortion;
+        }, 100);
+    }
+    
+    function triggerLimiterKickback() {
+        if (!isEngineRunning) return;
+        // Enhanced kickback sound for overheating limiter slip
+        // More pronounced, lower frequency "chug" sound
+        const savedDistortion = synthEngine.distortion.distortion;
+        synthEngine.distortion.distortion = 0.98; // Max distortion
+        
+        // Very low, chugging sound like engine cutting out
+        synthEngine.limiterPopSynth.frequency.value = 20 + Math.random() * 25; // Even lower: 20-45 Hz
+        synthEngine.limiterPopSynth.volume.value = -5 + Math.random() * 3; // Louder than regular pop
+        synthEngine.limiterPopSynth.modulationIndex = 40 + Math.random() * 15;
+        synthEngine.limiterPopSynth.resonance = 6000;
+        synthEngine.limiterPopSynth.triggerAttackRelease("16n"); // Longer duration
+        
+        // Add a second, slightly higher pop for the "kickback" effect
+        setTimeout(() => {
+            synthEngine.limiterPopSynth.frequency.value = 35 + Math.random() * 20;
+            synthEngine.limiterPopSynth.volume.value = -10 + Math.random() * 4;
+            synthEngine.limiterPopSynth.triggerAttackRelease("32n");
+        }, 80);
+        
+        // Reset distortion after kickback
+        setTimeout(() => {
+            synthEngine.distortion.distortion = savedDistortion;
+        }, 150);
+    }
+    
+    function triggerSpeedSlipBoom() {
+        if (!isEngineRunning) return;
+        // Low pitch distorted boom/hit for speed needle slip
+        const savedDistortion = synthEngine.distortion.distortion;
+        synthEngine.distortion.distortion = 0.99; // Maximum distortion for heavy boom
+        
+        // Very low frequency boom (like transmission slip or drivetrain hit)
+        synthEngine.limiterPopSynth.frequency.value = 15 + Math.random() * 20; // Ultra low: 15-35 Hz
+        synthEngine.limiterPopSynth.volume.value = -3 + Math.random() * 4; // Loud boom
+        synthEngine.limiterPopSynth.modulationIndex = 45 + Math.random() * 20; // High modulation for distortion
+        synthEngine.limiterPopSynth.resonance = 7000; // High resonance for sharp hit
+        synthEngine.limiterPopSynth.triggerAttackRelease("8n"); // Longer duration for boom
+        
+        // Add a secondary lower boom for depth
+        setTimeout(() => {
+            synthEngine.limiterPopSynth.frequency.value = 10 + Math.random() * 15; // Even lower: 10-25 Hz
+            synthEngine.limiterPopSynth.volume.value = -6 + Math.random() * 3;
+            synthEngine.limiterPopSynth.triggerAttackRelease("16n");
+        }, 100);
+        
+        // Reset distortion after boom
+        setTimeout(() => {
+            synthEngine.distortion.distortion = savedDistortion;
+        }, 200);
+    }
+
+    function triggerBackfire() {
+        if (!isEngineRunning) return;
+        
+        // Super low pitch explosions in exhaust - high distortion like real backfires
+        const savedDistortion = synthEngine.distortion.distortion;
+        synthEngine.distortion.distortion = 1.0; // Max distortion for backfire explosions
+        
+        const numPops = 3 + Math.floor(Math.random() * 4); // 3-6 pops
+        
+        for (let i = 0; i < numPops; i++) {
+            setTimeout(() => {
+                // Vary the pops - super low pitch like exhaust explosions
+                const intensity = i === 0 ? 1 : 0.7; // First pop is loudest
+                // Very low frequency like real exhaust backfires (20-80 Hz range)
+                synthEngine.backfireSynth.frequency.value = 20 + Math.random() * 60;
+                synthEngine.backfireSynth.volume.value = (-5 + Math.random() * 8) * intensity;
+                synthEngine.backfireSynth.modulationIndex = 40 + Math.random() * 15; // More modulation
+                synthEngine.backfireSynth.resonance = 6000 + Math.random() * 2000; // High resonance
+                synthEngine.backfireSynth.triggerAttackRelease(i === 0 ? "8n" : "16n");
+                
+                // Visual shake - more intense
+                const shakeIntensity = 8 * intensity;
+                document.body.style.transform = `translate(${Math.random()*shakeIntensity-shakeIntensity/2}px, ${Math.random()*shakeIntensity-shakeIntensity/2}px)`;
+                setTimeout(() => {
+                    if (i === numPops - 1) {
+                        document.body.style.transform = "none";
+                        // Reset distortion after all pops
+                        synthEngine.distortion.distortion = savedDistortion;
+                    }
+                }, 100);
+            }, i * 50); // Stagger the pops
+        }
+        
+        console.log("BACKFIRE STALL - LOW PITCH EXPLOSIONS!");
+        
+        // Full stall effect - only on actual backfire
+        targetRPM = IDLE_RPM + Math.random() * 300;
+    }
+
+    // ==========================================
+    // 3. PHYSICS LOOP & LOGIC
+    // ==========================================
+    let throttleInput = 0; // 0 to 1
+    let lastRPM = 0;
+
+    function updateAudioPhysics(rpm, load) {
+        if (!synthEngine.oscMain) return;
+
+        // Helper variable for calculations
+        const rpmNormalized = rpm / RPM_END;
+
+        // Engine-specific harmonic interval relationships (based on user's research)
+        // I5/V10: Major 10th (16 semitones = ratio ~1.778)
+        // V12/I6/V6/I3: Perfect 12th (19 semitones = ratio ~1.5, octave + fifth)
+        // V8/I4: Perfect 8th (12 semitones = ratio 2.0, octave)
+        
+        let cylindersPerBank;
+        let harmonicIntervalRatio; // Musical interval ratio for harmonic oscillator
+        
+        if (ENGINE_TYPE === 'v6') {
+            cylindersPerBank = 3;
+            harmonicIntervalRatio = 1.5; // Perfect 12th (octave + fifth) for V6
+        } else if (ENGINE_TYPE === 'v8') {
+            cylindersPerBank = 4;
+            harmonicIntervalRatio = 2.0; // Perfect 8th (octave) for V8
+        } else if (ENGINE_TYPE === 'v10') {
+            cylindersPerBank = 5;
+            harmonicIntervalRatio = 1.778; // Major 10th for V10/I5
+        } else { // v12
+            cylindersPerBank = 6;
+            harmonicIntervalRatio = 1.5; // Perfect 12th (octave + fifth) for V12
+        }
+        
+        // Calculate fundamental frequency based on RPM and firing order
+        // For 4-stroke: frequency = (RPM / 60) * (cylinders / 2) * firing events per rev
+        const firingFrequency = (rpm / 60) * cylindersPerBank;
+        
+        // Base frequency with lower, more realistic starting point
+        const fundFreq = Math.max(15, BASE_PITCH + (firingFrequency * PITCH_RANGE * 0.4));
+        const clampedFreq = Math.min(250, Math.max(15, fundFreq)); // Cap at 250Hz for realism
+        
+        const now = Tone.now();
+        
+        // 1. Main fundamental frequency (sawtooth for rich harmonics)
+        synthEngine.oscMain.frequency.rampTo(clampedFreq, 0.03, now);
+        
+        // 2. Harmonic oscillator at engine-specific interval (this is the key discovery!)
+        // This creates the dual-tone characteristic of each engine type
+        const harmonicFreq = clampedFreq * harmonicIntervalRatio;
+        synthEngine.oscHarmonic.frequency.rampTo(Math.min(400, harmonicFreq), 0.03, now);
+        
+        // 3. Sub oscillator (one octave below for body/rumble)
+        synthEngine.oscSub.frequency.rampTo(clampedFreq * 0.5, 0.03, now);
+        synthEngine.oscSub.volume.value = SUB_OSC_VOL;
+        
+        // 4. Texture oscillator (fifth interval for harmonic richness)
+        synthEngine.oscTexture.frequency.rampTo(clampedFreq * 1.5, 0.03, now);
+        // Adjust texture volume based on load
+        synthEngine.oscTexture.volume.value = -15 + (load * 5);
+
+        // 2. Filter (Timbre) - Opens up with RPM and Load for more realistic sound
+        // More gradual filter opening for less digital sound
+        const baseCutoff = HIGHPASS_FREQ;
+        const rpmCutoff = Math.min(LOWPASS_FREQ * 0.6, rpm * 0.15); // More gradual RPM response
+        const loadCutoff = load * 800; // Load-based filter opening
+        const cutoff = baseCutoff + rpmCutoff + loadCutoff;
+        const lowpassCutoff = Math.max(LOWPASS_FREQ * 0.5, Math.min(LOWPASS_FREQ, cutoff));
+        
+        synthEngine.lowpass.frequency.rampTo(lowpassCutoff, 0.08, now); // Slightly slower for smoother transition
+        synthEngine.lowpass.Q.value = RESONANCE * (0.8 + load * 0.4); // Q varies with load
+        
+        // Update highpass if we have it
+        if (synthEngine.highpass) {
+            // Highpass opens up gradually with RPM for more natural sound
+            const highpassValue = HIGHPASS_FREQ * (1 + (rpm / RPM_END) * 0.3);
+            synthEngine.highpass.frequency.rampTo(highpassValue, 0.08, now);
+        }
+
+        // 3. Noise (Air Intake) - more realistic, less digital
+        // Noise increases with load and RPM in a more natural way
+        const baseNoiseVol = -45;
+        const loadNoise = load * 25 * NOISE_AMOUNT;
+        const rpmNoise = Math.pow(rpm / RPM_END, 1.2) * 15 * NOISE_AMOUNT; // Exponential for realism
+        const noiseVol = baseNoiseVol + loadNoise + rpmNoise;
+        synthEngine.noiseGain.gain.rampTo(Tone.dbToGain(noiseVol), 0.12, now);
+        
+        // Noise filter frequency tracks RPM more naturally
+        const noiseFreq = 400 + (rpm * 0.3) + (load * 400);
+        synthEngine.noiseFilter.frequency.rampTo(noiseFreq, 0.1, now);
+
+        // 6. Distortion Dynamic - more nuanced for less digital sound
+        // Distortion increases with load but also has some RPM dependency
+        const baseDistortion = DISTORTION_STRENGTH * 0.7;
+        const loadDistortion = load * DISTORTION_STRENGTH * 0.5;
+        const rpmDistortion = Math.pow(rpm / RPM_END, 0.8) * DISTORTION_STRENGTH * 0.2;
+        synthEngine.distortion.distortion = baseDistortion + loadDistortion + rpmDistortion;
+        
+        // 7. Adjust harmonic oscillator volume based on engine state
+        // Lower volume at idle, stronger at higher RPM
+        const harmonicVol = -10 + (rpm / RPM_END) * 8 + (load * 5);
+        if (synthEngine.oscHarmonic) {
+            synthEngine.oscHarmonic.volume.value = Math.max(-15, Math.min(-5, harmonicVol));
+        }
+        
+        // ==========================================
+        // NEW: Optional background layers (start at 0 volume - can be mixed in)
+        // ==========================================
+        
+        // Optional Layer 1: Exhaust convolution (engine-sim technique)
+        // Default: OFF (volume 0) - can be enabled with exhaustConvolverMix parameter
+        if (synthEngine.exhaustConvolverGain) {
+            const exhaustConvolverMix = 0; // 0 = off, 1 = full (can be controlled via slider later)
+            const exhaustVol = -15 + (rpmNormalized * 5) + (load * 3); // Volume when enabled
+            synthEngine.exhaustConvolverGain.gain.rampTo(Tone.dbToGain(exhaustVol) * exhaustConvolverMix, 0.1, now);
+            
+            // Route a copy of main signal through exhaust convolver
+            if (synthEngine.exhaustConvolver && synthEngine.exhaustConvolver.wet) {
+                synthEngine.exhaustConvolver.wet.value = exhaustConvolverMix;
+            }
+        }
+        
+        // Optional Layer 2: Derivative-based high-frequency layer (engine-sim dF_F_mix)
+        // Default: OFF (volume 0) - adds high-freq detail from rate of change
+        if (synthEngine.derivativeGain) {
+            const derivativeMix = 0; // 0 = off, can be controlled via slider later
+            const dF_F_mix = 0.01 + (rpmNormalized * 0.02);
+            const derivativeVol = -18 + (rpmNormalized * 6) + (load * 3);
+            synthEngine.derivativeGain.gain.rampTo(Tone.dbToGain(derivativeVol) * dF_F_mix * derivativeMix, 0.05, now);
+        }
+        
+        // Optional Layer 3: Enhanced air noise (engine-sim style)
+        // Default: OFF (volume 0) - additional air noise layer
+        if (synthEngine.enhancedNoiseGain) {
+            const enhancedNoiseMix = 0; // 0 = off, can be controlled via slider later
+            const enhancedVol = -40 + (load * 20 * NOISE_AMOUNT) + (rpm / 500 * NOISE_AMOUNT * 10);
+            synthEngine.enhancedNoiseGain.gain.rampTo(Tone.dbToGain(enhancedVol) * enhancedNoiseMix, 0.1, now);
+        }
+        
+        // Optional Layer 4: Smooth engine sounds from sound library
+        // Default: OFF (volume 0) - smooth background engine samples
+        if (synthEngine.smoothSoundGain && synthEngine.smoothSoundPlayers) {
+            const smoothSoundMix = 0; // 0 = off, can be controlled via slider later (0.0 to 1.0)
+            const smoothBaseVol = -25; // Base volume when enabled
+            const smoothVol = smoothBaseVol + (load * 10) + (rpmNormalized * 8); // Volume increases with load and RPM
+            synthEngine.smoothSoundGain.gain.rampTo(Tone.dbToGain(smoothVol) * smoothSoundMix, 0.15, now);
+            
+            // Pitch shift based on RPM (playback rate adjustment)
+            // Normalize RPM to 0-1, map to playback rate 0.5x to 2.0x
+            const playbackRate = 0.5 + (rpmNormalized * 1.5); // 0.5x at idle, 2.0x at max RPM
+            
+            synthEngine.smoothSoundPlayers.forEach((player) => {
+                if (smoothSoundMix > 0) {
+                    // Start playing if not already started
+                    if (player.state !== 'started') {
+                        player.start();
+                    }
+                    // Adjust playback rate to match RPM
+                    player.playbackRate = playbackRate;
+                } else {
+                    // Stop if mix is 0
+                    if (player.state === 'started') {
+                        player.stop();
+                    }
+                }
+            });
+        }
+        
+        // Optional Layer 5: Archive engine sounds from sound library
+        // Default: OFF (volume 0) - archive background engine samples
+        if (synthEngine.archiveSoundGain && synthEngine.archiveSoundPlayers) {
+            const archiveSoundMix = 0; // 0 = off, can be controlled via slider later (0.0 to 1.0)
+            const archiveBaseVol = -30; // Base volume when enabled (slightly lower than smooth)
+            const archiveVol = archiveBaseVol + (load * 12) + (rpmNormalized * 10); // Volume increases with load and RPM
+            synthEngine.archiveSoundGain.gain.rampTo(Tone.dbToGain(archiveVol) * archiveSoundMix, 0.15, now);
+            
+            // Pitch shift based on RPM (playback rate adjustment)
+            // Normalize RPM to 0-1, map to playback rate 0.4x to 2.2x (slightly wider range for archive sounds)
+            const playbackRate = 0.4 + (rpmNormalized * 1.8); // 0.4x at idle, 2.2x at max RPM
+            
+            synthEngine.archiveSoundPlayers.forEach((player) => {
+                if (archiveSoundMix > 0) {
+                    // Start playing if not already started
+                    if (player.state !== 'started') {
+                        player.start();
+                    }
+                    // Adjust playback rate to match RPM
+                    player.playbackRate = playbackRate;
+                } else {
+                    // Stop if mix is 0
+                    if (player.state === 'started') {
+                        player.stop();
+                    }
+                }
+            });
+        }
+    }
+
+    function gameLoop() {
+        if (!isEngineRunning) {
+            requestAnimationFrame(gameLoop);
+            return;
+        }
+
+        // 1. Physics: RPM calculation
+        // Rise fast, fall slow
+        const maxAllowedRPM = GOVERNOR_ENABLED ? REV_LIMIT : RPM_END; // Allow red zone if governor disabled
+        
+        // Heat System - Builds up when throttle held, cools when released or at low RPM
+        const throttleHeld = throttleInput > 0 || isSliderActive;
+        const isLowRPM = currentRPM < IDLE_RPM * 2; // Below ~1700 RPM
+        
+        if (throttleHeld) {
+            // Build heat faster at higher RPM/load (heavy footing causes faster overheating)
+            const heatMultiplier = 1 + (engineLoad * 0.8) + (currentRPM / RPM_END * 0.5);
+            engineHeat = Math.min(100, engineHeat + (HEAT_BUILDUP_RATE * heatMultiplier));
+        } else {
+            // Cool down when throttle released
+            engineHeat = Math.max(0, engineHeat - HEAT_COOLDOWN_RATE);
+        }
+        
+        // Extra cooling at low RPM (even if throttle is held)
+        if (isLowRPM) {
+            engineHeat = Math.max(0, engineHeat - HEAT_COOLDOWN_AT_LOW_RPM);
+        }
+        
+        // Convert heat (0-100) to temperature (150-250°F)
+        engineTempF = TEMP_MIN_F + (engineHeat / 100) * (TEMP_MAX_F - TEMP_MIN_F);
+        
+        // Update overheating state
+        const wasOverheating = isOverheating;
+        isOverheating = engineHeat >= OVERHEAT_THRESHOLD;
+        
+        // Engine failure check (if enabled)
+        const engineFailureEnabled = document.getElementById('engine-failure-toggle')?.checked || false;
+        if (engineFailureEnabled && engineHeat >= ENGINE_FAILURE_THRESHOLD && !engineFailed) {
+            engineFailed = true;
+            // Engine is damaged - show failure notification
+            showEngineFailureNotification();
+            console.warn('ENGINE FAILURE: Engine damaged beyond use!');
+        }
+        
+        // If engine failed, limit RPM and performance (engine is "melted" and stuck)
+        if (engineFailed) {
+            // Engine is melted - severely limit performance and can get stuck
+            targetRPM = Math.min(targetRPM, IDLE_RPM * 1.5); // Can't go above ~1275 RPM
+            engineLoad = Math.min(engineLoad, 0.2); // Very limited power
+            // Engine can get stuck at low RPM when failed
+            if (currentRPM < IDLE_RPM * 1.2) {
+                targetRPM = IDLE_RPM * 1.2; // Stuck at low RPM
+            }
+        }
+        
+        // Handle throttle input - works for both arrows and slider with unified physics
+        if (throttleInput > 0 && !isSliderActive) {
+            // Acceleration - uses ACCELERATION_SENSITIVITY to control how fast RPM increases
+            // Dynamic acceleration that respects limiter - arrows feel responsive
+            const targetMax = BACKFIRE_CHANCE === 0 && !GOVERNOR_ENABLED ? RPM_END : maxAllowedRPM;
+            targetRPM += (targetMax - targetRPM) * ACCELERATION_SENSITIVITY * throttleInput;
+            engineLoad = throttleInput;
+        } else if (isSliderActive) {
+            // Slider is active - engine load based on RPM position
+            const sliderVal = parseInt(radialTester.value) || targetRPM;
+            engineLoad = Math.min(1.0, sliderVal / REV_LIMIT);
+            // targetRPM already set by slider input handler
+            // Let physics handle updates for dynamic slip/backfire
+        } else {
+            // Deceleration (Engine braking) - immediate response when throttle released
+            // Faster decay for immediate sound response
+            targetRPM -= (targetRPM - IDLE_RPM) * 0.05; // Increased from 0.02 to 0.05 for faster response
+            engineLoad = 0; // Immediately set load to 0 for instant audio response
+        }
+        
+        // Sync slider visual with current RPM (works for both input methods)
+        // Only sync if slider is not actively being dragged
+        const radialTesterEl = document.getElementById('radial-tester');
+        if (!isSliderActive && radialTesterEl) {
+            radialTesterEl.value = Math.round(currentRPM);
+        }
+
+        // Rev Limiter Logic - ALWAYS slip in red zone when at/above limit OR when overheating
+        // Check if we're in red zone (at or above REV_LIMIT)
+        const isInRedZone = currentRPM >= REV_LIMIT || targetRPM >= REV_LIMIT;
+        
+        // Overheating causes limiter slip even if not at redline
+        if (isOverheating) {
+            // Overheating cycle: slip → cool slightly → rev back up → slip again
+            limiterOscillation += 0.35; // Faster oscillation when overheating
+            const oscillationRange = 300; // More pronounced slip when overheating
+            const oscillationOffset = Math.sin(limiterOscillation) * oscillationRange;
+            
+            // When slipping (sine wave going down), RPM drops and heat cools (exhaust choking effect)
+            const slipPhase = Math.sin(limiterOscillation);
+            if (slipPhase < -0.5) {
+                // Slipping phase - RPM drops, exhaust chokes → significant cooling burst
+                targetRPM = Math.max(IDLE_RPM + 500, targetRPM - 200 + oscillationOffset * 0.8);
+                // Cool more when slipping back more (proportional to slip amount)
+                const slipAmount = Math.abs(oscillationOffset) / oscillationRange; // 0-1, how much it's slipping
+                const coolingBurst = 1.5 + (slipAmount * 2.0); // 1.5-3.5 cooling per frame during slip
+                engineHeat = Math.max(OVERHEAT_COOLDOWN_THRESHOLD, engineHeat - coolingBurst);
+            } else if (slipPhase > 0.5) {
+                // Recovery phase - RPM tries to go back up (but don't lock it)
+                const recoveryTarget = isInRedZone ? REV_LIMIT - 100 : Math.min(REV_LIMIT, currentRPM + 300);
+                targetRPM = Math.min(recoveryTarget, targetRPM + 150 + oscillationOffset * 0.4);
+            } else {
+                // Transition phase - allow some movement, don't lock
+                targetRPM = Math.min(REV_LIMIT, targetRPM + oscillationOffset * 0.6);
+            }
+            
+            // Enhanced audio feedback for limiter kickback when overheating
+            if (slipPhase < -0.7 && Math.random() < 0.4) {
+                triggerLimiterKickback(); // New function for overheating kickback sound
+            }
+            // Also trigger regular pops
+            if (Math.sin(limiterOscillation) > 0.6 && Math.random() < 0.25) {
+                triggerLimiterPop();
+            }
+        } else if (GOVERNOR_ENABLED && isInRedZone) {
+            // Always oscillate/slip in red zone - no matter how we got there
+            limiterOscillation += 0.3;
+            const oscillationRange = 250; // More pronounced slip
+            const oscillationOffset = Math.sin(limiterOscillation) * oscillationRange;
+            targetRPM = REV_LIMIT - 150 + oscillationOffset * 0.6; // More noticeable slip
+            
+            // Exhaust choking effect during redline slip - cool when slipping back
+            const slipPhase = Math.sin(limiterOscillation);
+            if (slipPhase < -0.3) {
+                // Slipping back - exhaust chokes, cool down
+                const slipAmount = Math.abs(oscillationOffset) / oscillationRange;
+                const coolingBurst = 0.8 + (slipAmount * 1.2); // 0.8-2.0 cooling per frame
+                engineHeat = Math.max(0, engineHeat - coolingBurst);
+            }
+            
+            // Trigger limiter pops more frequently when slipping
+            // Pop at certain oscillation points (when sine wave peaks)
+            if (Math.sin(limiterOscillation) > 0.7 && Math.random() < 0.2) {
+                triggerLimiterPop();
+            }
+        } else if (!GOVERNOR_ENABLED && isInRedZone) {
+            // Governor disabled but still in red zone - allow slip but can go higher
+            limiterOscillation += 0.25;
+            const oscillationRange = 200;
+            const oscillationOffset = Math.sin(limiterOscillation) * oscillationRange;
+            
+            // Can go into red zone but still slips
+            if (targetRPM > REV_LIMIT && targetRPM < RPM_END) {
+                targetRPM = targetRPM - 50 + oscillationOffset * 0.4; // Slip even in red
+            }
+            
+            // Only hard limit at absolute max
+            if (targetRPM > RPM_END) {
+                targetRPM = RPM_END;
+            }
+            
+            // Trigger pops in red zone even without governor
+            if (Math.sin(limiterOscillation) > 0.75 && Math.random() < 0.15) {
+                triggerLimiterPop();
+            }
+        // ==========================================
+        // ARROW KEY DRIFT SLIP - DISABLED (COMMENTED OUT)
+        // Uncomment this section to re-enable arrow key drift slip functionality
+        // ==========================================
+        /*
+        } else if (isDrifting) {
+            // Drift slip - oscillate RPM even when not in red zone
+            // ANTI-STUCK: Never allow getting stuck unless engine is failed
+            if (engineFailed) {
+                // Engine failed - can get stuck, limit severely
+                targetRPM = Math.min(targetRPM, IDLE_RPM * 1.5);
+            } else {
+                // Normal operation - apply slip but never get stuck
+                limiterOscillation += 0.3; // Same rate as red zone slip
+                const oscillationRange = 150; // Reduced from 200 to prevent locking
+                const oscillationOffset = Math.sin(limiterOscillation) * oscillationRange;
+                
+                // Apply oscillation as an offset to targetRPM - allows throttle to still work
+                // Store what targetRPM would be without slip (from throttle input)
+                // The throttle input logic above already set targetRPM, so we just add slip offset
+                const slipEffect = oscillationOffset * 0.3; // Reduced from 0.5 to prevent locking
+                targetRPM = targetRPM + slipEffect;
+                
+                // Clamp to valid range but don't prevent throttle from working
+                // ANTI-STUCK: Always allow throttle to continue working
+                targetRPM = Math.max(IDLE_RPM + 200, Math.min(RPM_END, targetRPM));
+                
+                // Safety: If we've been oscillating too long, force reset to prevent stuck state
+                if (limiterOscillation > 50) {
+                    limiterOscillation = 0.1; // Reset oscillation to prevent infinite loops
+                }
+            }
+            
+            // Exhaust choking effect during drift slip - cool when slipping back
+            const slipPhase = Math.sin(limiterOscillation);
+            if (slipPhase < -0.3) {
+                // Slipping back - exhaust chokes, significant cooling burst
+                const slipAmount = Math.abs(oscillationOffset) / oscillationRange;
+                const coolingBurst = 1.0 + (slipAmount * 1.5); // 1.0-2.5 cooling per frame
+                engineHeat = Math.max(0, engineHeat - coolingBurst);
+            }
+            
+            // Trigger limiter pops during drift slip
+            if (Math.sin(limiterOscillation) > 0.7 && Math.random() < 0.15) {
+                triggerLimiterPop();
+            }
+        */
+        } else {
+            limiterOscillation = 0; // Reset oscillation when not in red zone and not drifting
+        }
+
+        // Apply smoothing to actual RPM - faster when decelerating for immediate response
+        const smoothingRate = throttleInput > 0 || isSliderActive ? 0.2 : 0.4; // Faster smoothing when decelerating
+        currentRPM += (targetRPM - currentRPM) * smoothingRate;
+
+        // Backfire Logic: Only on rapid RPM drops (stall condition)
+        // This catches actual backfire events, not limiter oscillation or gear changes
+        const rpmDrop = lastRPM - currentRPM;
+        // Only trigger stall if it's a significant drop (actual backfire, not just oscillation)
+        // Threshold of 300 RPM drop ensures it's not just limiter bouncing
+        if (rpmDrop > 300 && BACKFIRE_CHANCE > 0 && Math.random() < (BACKFIRE_CHANCE * 0.2)) {
+            // Significant drop = actual backfire stall - full kickback
+            triggerBackfire();
+            // Stall effect is handled in triggerBackfire function
+        }
+        
+        lastRPM = currentRPM;
+
+        // Calculate speed based on RPM (simplified relationship)
+        // Speed increases with RPM, with some curve
+        const speedMultiplier = SPEED_UNIT_MPH ? (MAX_SPEED_MPH / RPM_END) : (MAX_SPEED_KMH / RPM_END);
+        let baseSpeed = Math.pow(currentRPM / RPM_END, 1.5) * (SPEED_UNIT_MPH ? MAX_SPEED_MPH : MAX_SPEED_KMH);
+        
+        // CRITICAL FIX: Use stable base speed when drift is active to prevent oscillation feedback loop
+        // When drift starts, lock in the base speed at that moment
+        if (isDrifting && !wasDrifting) {
+            // Just started drifting - lock in stable base speed
+            stableBaseSpeed = baseSpeed;
+            driftSlipStartTime = Date.now();
+        } else if (!isDrifting) {
+            // Not drifting - update stable base speed normally
+            stableBaseSpeed = baseSpeed;
+        }
+        
+        // If drift has been active too long, force recovery
+        if (isDrifting && (Date.now() - driftSlipStartTime) > MAX_DRIFT_SLIP_TIME) {
+            // Force exit drift slip after max time
+            speedSlipCycleCount = MAX_SLIP_CYCLES; // Trigger recovery
+        }
+        
+        // Speed needle slip based on speed thresholds (not just RPM)
+        // Automatic mode: slip at 210 km/h (126 mph)
+        // Manual mode: slip at per-gear speed limits
+        let speedSlipThreshold = 0;
+        let shouldSlipBySpeed = false;
+        
+        if (transmissionMode === 'automatic') {
+            // Automatic mode: fixed threshold
+            speedSlipThreshold = SPEED_UNIT_MPH ? AUTO_SLIP_THRESHOLD_MPH : AUTO_SLIP_THRESHOLD_KMH;
+            shouldSlipBySpeed = currentSpeed >= speedSlipThreshold;
+        } else if (transmissionMode === 'manual' && currentGear > 0 && currentGear <= 5) {
+            // Manual mode: per-gear limits
+            const gearLimitKMH = MANUAL_GEAR_SPEED_LIMITS[currentGear];
+            speedSlipThreshold = SPEED_UNIT_MPH ? (gearLimitKMH * 0.621371) : gearLimitKMH; // Convert to mph if needed
+            shouldSlipBySpeed = currentSpeed >= speedSlipThreshold;
+        }
+        
+        // ==========================================
+        // SPACEBAR DRIFT SLIP - DISABLED (COMMENTED OUT)
+        // Uncomment this section to re-enable spacebar drift slip functionality
+        // ==========================================
+        /*
+        // Update drift state: Spacebar pressed + speed above threshold
+        // CRITICAL FIX: Make drift slip periodic with recovery periods
+        const currentSpeedKMH = SPEED_UNIT_MPH ? (currentSpeed / 0.621371) : currentSpeed;
+        const DRIFT_SPEED_MIN_KMH = 90;
+        const DRIFT_SPEED_ALWAYS_KMH = 120;
+        
+        // Check if we're in recovery cooldown period
+        const timeSinceRecovery = Date.now() - driftRecoveryTime;
+        const inCooldown = isInDriftRecovery && timeSinceRecovery < DRIFT_RECOVERY_COOLDOWN;
+        
+        let shouldDrift = false;
+        // Only allow drift if not in recovery cooldown
+        if (!inCooldown && isSpacePressed && currentSpeedKMH >= DRIFT_SPEED_MIN_KMH) {
+            if (currentSpeedKMH >= DRIFT_SPEED_ALWAYS_KMH) {
+                // Always trigger above 120 km/h
+                shouldDrift = true;
+            } else {
+                // Random chance between 90-120 km/h
+                // Higher chance as speed increases
+                const speedFactor = (currentSpeedKMH - DRIFT_SPEED_MIN_KMH) / (DRIFT_SPEED_ALWAYS_KMH - DRIFT_SPEED_MIN_KMH);
+                const chance = 0.3 + (speedFactor * 0.5); // 30% at 90 km/h, 80% at 120 km/h
+                shouldDrift = Math.random() < chance;
+            }
+        }
+        
+        // Exit recovery mode if cooldown is over
+        if (isInDriftRecovery && timeSinceRecovery >= DRIFT_RECOVERY_COOLDOWN) {
+            isInDriftRecovery = false;
+        }
+        
+        isDrifting = shouldDrift && !isInDriftRecovery;
+        */
+        // DISABLED: Spacebar drift slip is off - set isDrifting to false
+        isDrifting = false;
+        
+        // Detect when drift just started (wasn't drifting before, now is)
+        const driftJustStarted = isDrifting && !wasDrifting;
+        wasDrifting = isDrifting; // Update previous state
+        
+        // CRITICAL FIX: Use stable base speed for drift slip to prevent oscillation feedback
+        // DISABLED: Spacebar drift slip removed, so always use baseSpeed
+        // const referenceSpeed = isDrifting ? stableBaseSpeed : baseSpeed;
+        const referenceSpeed = baseSpeed;
+        
+        // Slip when at speed threshold OR at RPM redline (spacebar drift slip disabled)
+        if (shouldSlipBySpeed || isInRedZone) {
+            // DISABLED: Drift slip oscillation start (spacebar drift removed)
+            // if (isDrifting && limiterOscillation === 0) {
+            //     limiterOscillation = 0.1; // Start oscillation immediately
+            // }
+            
+            // Track slip cycles - slip a few times then recover
+            const speedSlipOscillation = limiterOscillation * 1.2; // Sync with limiter oscillation
+            const slipPhase = Math.sin(speedSlipOscillation);
+            
+            // DISABLED: Drift slip audio trigger (spacebar drift removed)
+            // if (driftJustStarted) {
+            //     // Just started drifting - trigger immediate audio
+            //     triggerSpeedSlipBoom();
+            // }
+            
+            // Count slip cycles (each time it goes from positive to negative = one slip)
+            if (slipPhase < -0.8 && speedSlipCycle > 0.5) {
+                // Just completed a slip cycle
+                speedSlipCycleCount++;
+                speedSlipCycle = -0.5; // Reset to track next cycle
+            } else if (slipPhase > 0.8) {
+                speedSlipCycle = 1; // Mark that we're in positive phase
+            }
+            
+            // CRITICAL FIX: Force recovery after max cycles OR if close to reference (drift time check disabled)
+            const shouldRecover = speedSlipCycleCount >= MAX_SLIP_CYCLES || 
+                                 // (isDrifting && (Date.now() - driftSlipStartTime) > MAX_DRIFT_SLIP_TIME) || // DISABLED: drift slip
+                                 (!engineFailed && speedSlipCycleCount > 0 && Math.abs(currentSpeed - referenceSpeed) < 3);
+            
+            if (shouldRecover) {
+                // Recovery phase - ease back to reference speed smoothly
+                const recoveryRate = engineFailed ? 0.05 : 0.4; // Even faster recovery for normal operation
+                const speedDiff = referenceSpeed - currentSpeed;
+                
+                // If we're very close, just snap to reference speed to prevent getting stuck (unless failed)
+                if (!engineFailed && Math.abs(speedDiff) < 0.5) {
+                    currentSpeed = referenceSpeed;
+                    speedSlipCycleCount = 0;
+                    speedSlipCycle = 0;
+                    // DISABLED: Drift recovery cooldown (spacebar drift removed)
+                    // if (isDrifting) {
+                    //     isInDriftRecovery = true;
+                    //     driftRecoveryTime = Date.now();
+                    //     isDrifting = false; // Temporarily disable drift to allow recovery
+                    // }
+                    // driftSlipStartTime = Date.now(); // Reset timer for next cycle
+                } else {
+                    // Smooth recovery
+                    currentSpeed += speedDiff * recoveryRate;
+                    // Reset cycle count when we're close to reference speed (unless engine failed)
+                    if (!engineFailed && Math.abs(speedDiff) < 1) {
+                        speedSlipCycleCount = 0;
+                        speedSlipCycle = 0;
+                        // DISABLED: Drift recovery cooldown (spacebar drift removed)
+                        // if (isDrifting) {
+                        //     isInDriftRecovery = true;
+                        //     driftRecoveryTime = Date.now();
+                        //     isDrifting = false; // Temporarily disable drift to allow recovery
+                        // }
+                        // driftSlipStartTime = Date.now(); // Reset timer
+                    }
+                }
+            } else {
+                // Still in slip phase - oscillate back and forth around STABLE reference speed
+                const maxSpeed = SPEED_UNIT_MPH ? MAX_SPEED_MPH : MAX_SPEED_KMH;
+                const speedSlipRange = maxSpeed * 0.06; // 6% slip range - subtle but noticeable
+                const speedSlipOffset = Math.sin(speedSlipOscillation) * speedSlipRange;
+                
+                // Oscillate around STABLE reference speed (not oscillating baseSpeed)
+                const minSpeed = referenceSpeed * 0.85; // Never drop below 85% of reference
+                const maxAllowedSpeed = referenceSpeed * 1.02; // Allow 2% above reference to prevent locking
+                
+                if (slipPhase < -0.3) {
+                    // Slipping back - speed drops slightly
+                    currentSpeed = Math.max(minSpeed, referenceSpeed + speedSlipOffset * 0.4);
+                    // Trigger speed slip audio (low pitch distorted boom)
+                    // DISABLED: Higher chance when drifting (spacebar drift removed)
+                    // const audioChance = isDrifting ? 0.3 : 0.1; // 30% chance when drifting, 10% otherwise
+                    const audioChance = 0.1; // 10% chance (drift removed)
+                    if (Math.random() < audioChance) {
+                        triggerSpeedSlipBoom();
+                    }
+                } else if (slipPhase > 0.3) {
+                    // Recovering - speed tries to go back up toward reference
+                    currentSpeed = Math.min(maxAllowedSpeed, referenceSpeed + speedSlipOffset * 0.3);
+                } else {
+                    // Transition - smooth oscillation around reference
+                    currentSpeed = Math.max(minSpeed, Math.min(maxAllowedSpeed, referenceSpeed + speedSlipOffset * 0.35));
+                }
+            }
+        } else {
+            // Not at redline - reset slip cycle and return to normal
+            // ANTI-STUCK: Always recover smoothly unless engine failed
+            if (speedSlipCycleCount > 0) {
+                // Smoothly recover if we were slipping
+                const recoveryRate = engineFailed ? 0.05 : 0.3; // Faster recovery if normal
+                currentSpeed += (baseSpeed - currentSpeed) * recoveryRate;
+                // Force reset if very close (unless engine failed - allows getting stuck)
+                if (!engineFailed && Math.abs(currentSpeed - baseSpeed) < 0.5) {
+                    currentSpeed = baseSpeed;
+                    speedSlipCycleCount = 0;
+                    speedSlipCycle = 0;
+                } else if (engineFailed && Math.abs(currentSpeed - baseSpeed) < 0.5) {
+                    // Engine failed - can get stuck at this point
+                    speedSlipCycleCount = 0;
+                    speedSlipCycle = 0;
+                }
+            } else {
+                currentSpeed = baseSpeed;
+            }
+            // Reset stable base speed when not drifting
+            stableBaseSpeed = baseSpeed;
+        }
+
+        // 2. Update Gauges
+        if (speedMeter) {
+            speedMeter.setValue(currentSpeed);
+        }
+        if (rpmMeter) {
+            // Clamp RPM to configured range
+            const clampedRPM = Math.max(RPM_START, Math.min(RPM_END, currentRPM));
+            rpmMeter.setValue(clampedRPM);
+        }
+        if (mapMeter) {
+            mapMeter.setValue(engineLoad * 100);
+        }
+        
+        // Update Temperature Gauge
+        const tempBar = document.getElementById('temp-bar');
+        const tempValue = document.getElementById('temp-value');
+        if (tempBar && tempValue) {
+            const tempPercent = ((engineTempF - TEMP_MIN_F) / (TEMP_MAX_F - TEMP_MIN_F)) * 100;
+            tempBar.style.width = Math.min(100, Math.max(0, tempPercent)) + '%';
+            
+            // Color coding: cyan (normal) -> yellow (warming) -> red (overheating)
+            if (engineTempF < 180) {
+                tempBar.style.background = 'linear-gradient(to right, #06b6d4, #3b82f6)'; // Cyan to blue
+            } else if (engineTempF < 210) {
+                tempBar.style.background = 'linear-gradient(to right, #eab308, #f59e0b)'; // Yellow to orange
+            } else {
+                tempBar.style.background = 'linear-gradient(to right, #ef4444, #dc2626)'; // Red
+            }
+            
+            tempValue.textContent = Math.round(engineTempF) + '°F';
+            
+            // Show warning if overheating or failed
+            if (engineFailed) {
+                tempValue.style.color = '#dc2626';
+                tempValue.style.textShadow = '0 0 10px #dc2626';
+                tempValue.textContent = Math.round(engineTempF) + '°F (FAILED)';
+            } else if (isOverheating) {
+                tempValue.style.color = '#ef4444';
+                tempValue.style.textShadow = '0 0 10px #ef4444';
+            } else {
+                tempValue.style.color = '#ffffff';
+                tempValue.style.textShadow = 'none';
+            }
+        }
+        
+        // Update Directional Arrow Indicator
+        updateDirectionIndicator();
+
+        // 3. Update Audio
+        updateAudioPhysics(currentRPM, engineLoad);
+
+        // 4. Update Matter.js Physics Speed
+        updateVisualizer(currentRPM);
+
+        // 5. Draw Waveform
+        drawWaveform();
+
+        requestAnimationFrame(gameLoop);
+    }
+
+    // ==========================================
+    // 4. VISUALIZER (Matter.js + Canvas)
+    // ==========================================
+    const canvas = document.getElementById('engine-canvas');
+    const { Engine, Render, World, Bodies, Constraint, Body, Composite } = Matter;
+    
+    // Create Matter Engine
+    const mEngine = Engine.create();
+    mEngine.gravity.y = 0; // Zero gravity
+
+    const mRender = Render.create({
+        canvas: canvas,
+        engine: mEngine,
+        options: {
+            width: canvas.clientWidth,
+            height: canvas.clientHeight,
+            wireframes: false,
+            background: 'transparent',
+            pixelRatio: 'auto'
+        }
+    });
+
+    // --- Build V8 Engine Wireframe ---
+    function buildEngineModel() {
+        const cx = canvas.clientWidth / 2;
+        const cy = canvas.clientHeight / 2 + 50;
+        const crankRad = 40;
+        const rodLen = 120;
+        const pistonW = 60;
+        const pistonH = 50;
+
+        // Crankshaft center
+        const crankCenter = Bodies.circle(cx, cy, 10, { isStatic: true, render: { fillStyle: '#333' } });
+        
+        // V-Shape: Left (-45deg) and Right (+45deg)
+        // We will just simulate ONE bank visually for performance/clarity or 2 in V
+        
+        const createPistonAssy = (angleOffset, color) => {
+            const angle = angleOffset;
+            const px = cx + Math.cos(angle) * crankRad;
+            const py = cy + Math.sin(angle) * crankRad;
+
+            // Crank Pin (Visual only, attached to rod)
+            const pin = Bodies.circle(px, py, 8, { 
+                render: { fillStyle: '#e74c3c' },
+                collisionFilter: { group: -1 } 
+            });
+
+            // Piston
+            // Calculate initial piston position based on angle
+            const pistDist = crankRad + rodLen; // Approximate top dead center
+            const pX = cx + Math.cos(angle) * pistDist;
+            const pY = cy + Math.sin(angle) * pistDist; // This is wrong mathematically but good enough for init
+
+            const piston = Bodies.rectangle(cx, cy - 150, pistonW, pistonH, {
+                render: { 
+                    fillStyle: color, 
+                    strokeStyle: '#fff',
+                    lineWidth: 2 
+                },
+                collisionFilter: { group: -1 }
+            });
+
+            // Rod
+            const rod = Bodies.rectangle(cx, cy - 80, 10, rodLen, {
+                render: { fillStyle: '#555' },
+                collisionFilter: { group: -1 }
+            });
+
+            // Constraints
+            // 1. Crank to Pin (Revolution)
+            const c1 = Constraint.create({
+                bodyA: crankCenter,
+                bodyB: pin,
+                length: crankRad,
+                stiffness: 1,
+                render: { strokeStyle: '#444', lineWidth: 3 }
+            });
+
+            // 2. Pin to Rod
+            const c2 = Constraint.create({
+                bodyA: pin,
+                bodyB: rod,
+                pointB: { x: 0, y: rodLen/2 },
+                length: 0,
+                stiffness: 1,
+                render: { visible: false }
+            });
+
+            // 3. Rod to Piston
+            const c3 = Constraint.create({
+                bodyA: rod,
+                bodyB: piston,
+                pointA: { x: 0, y: -rodLen/2 },
+                length: 0,
+                stiffness: 1,
+                render: { visible: false }
+            });
+
+            // 4. Piston Slide (Keep it vertical-ish) - Simplified for visualizer
+            // In a real sim we'd use a slider constraint. Here we just let it flop slightly or constrain X
+            
+            return { parts: [pin, piston, rod, c1, c2, c3], pin, piston };
+        };
+
+        // Bank 1
+        const bank1 = createPistonAssy(-Math.PI/2, '#1f2833');
+        World.add(mEngine.world, [crankCenter, ...bank1.parts]);
+        
+        // Add a constraint to keep piston X constant
+        const guide = Constraint.create({
+            bodyA: bank1.piston,
+            pointB: { x: cx, y: bank1.piston.position.y }, // Anchor to X center
+            stiffness: 0.1, // Soft constraint allows movement
+            length: 0,
+            damping: 0.1,
+            render: { visible: false }
+        });
+        // Actually, better way: explicitly set position in update loop
+        mEngine.pistonBody = bank1.piston;
+        mEngine.pinBody = bank1.pin;
+        mEngine.crankCenterBody = crankCenter;
+    }
+
+    buildEngineModel();
+    // Start Matter Runner
+    const runner = Matter.Runner.create();
+    Matter.Runner.run(runner, mEngine);
+
+    // Engine Video Visualizer Control with visual effects
+    const gifContainer = document.getElementById('gif-container');
+    const engineVideo = document.getElementById('engine-video');
+    const engineVideoCanvas = document.getElementById('engine-video-canvas');
+    const engineVideoFallback = document.getElementById('engine-video-fallback');
+    const engineVideoStatus = document.getElementById('engine-video-status');
+    const visualizerPanel = document.getElementById('visualizer-panel');
+
+    // Reparent video overlay to telemetry (gauges) panel and style for blending
+    if (gifContainer && visualizerPanel && gifContainer.parentElement !== visualizerPanel) {
+        // Ensure combustion chamber panel acts as positioning context
+        visualizerPanel.style.position = 'relative';
+        visualizerPanel.appendChild(gifContainer);
+        Object.assign(gifContainer.style, {
+            position: 'absolute',
+            top: '0',
+            left: '0',
+            width: '100%',
+            height: '100%',
+            zIndex: '1',
+            pointerEvents: 'none',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            visibility: 'visible',
+            opacity: '0.3',
+        });
+        if (engineVideoCanvas) {
+            engineVideoCanvas.style.mixBlendMode = 'screen';
+            engineVideoCanvas.style.webkitMaskImage = 'radial-gradient(circle at center, rgba(255,255,255,1) 70%, rgba(255,255,255,0) 100%)';
+            engineVideoCanvas.style.maskImage = 'radial-gradient(circle at center, rgba(255,255,255,1) 70%, rgba(255,255,255,0) 100%)';
+        }
+        if (engineVideoFallback) {
+            engineVideoFallback.style.webkitMaskImage = 'radial-gradient(circle at center, rgba(255,255,255,1) 70%, rgba(255,255,255,0) 100%)';
+            engineVideoFallback.style.maskImage = 'radial-gradient(circle at center, rgba(255,255,255,1) 70%, rgba(255,255,255,0) 100%)';
+        }
+    }
+
+    // Resolve local video path by engine type (V2 assets)
+    function resolveVideoPath(engineType) {
+        const map = {
+            v2: './assets/Engines/V/V2.mp4',
+            v4: './assets/Engines/V/V4.mp4',
+            v6: './assets/Engines/V/V6.mp4',
+            v8: './assets/Engines/V/V8.mp4',
+            v10: './assets/Engines/V/V10.mp4',
+            v12: './assets/Engines/V/v12.mp4', // lowercase file
+            v16: './assets/Engines/V/V16.mp4',
+        };
+        const key = (engineType || 'v8').toLowerCase();
+        return map[key] || map.v8;
+    }
+
+    // Resolve per-engine GIF/PNG assets for image-based visualizer
+    function resolveGifPath(engineType) {
+        const map = {
+            v2: './assets/Engines/V/V2.gif',
+            v4: './assets/Engines/V/V4.gif',
+            v6: './assets/Engines/V/V6.gif',
+            v8: './assets/Engines/V/V8.gif',
+            v10: './assets/Engines/V/V10.gif',
+            v12: './assets/Engines/V/v12.gif',
+            v16: './assets/Engines/V/V16.gif',
+        };
+        const key = (engineType || 'v8').toLowerCase();
+        return map[key] || map.v8;
+    }
+
+    function resolvePngPath(engineType) {
+        const map = {
+            v2: './assets/Engines/V/V2.png',
+            v4: './assets/Engines/V/V4.png',
+            v6: './assets/Engines/V/V6.png',
+            v8: './assets/Engines/V/V8.png',
+            v10: './assets/Engines/V/V10.png',
+            v12: './assets/Engines/V/v12.png',
+            v16: './assets/Engines/V/V16.png',
+        };
+        const key = (engineType || 'v8').toLowerCase();
+        return map[key] || map.v8;
+    }
+
+    // Initialize engine video (hidden) and canvas
+    let engineVideoFailed = true;
+    function initEngineVideo() {
+        if (!engineVideo || !engineVideoCanvas || !gifContainer) return;
+        // Use image-based visualizer by default: PNG for engine-off
+        const pngPath = resolvePngPath(ENGINE_TYPE);
+        if (engineVideoFallback) {
+            engineVideoFallback.src = pngPath;
+            engineVideoFallback.style.display = 'block';
+        }
+        gifContainer.style.opacity = '0.4';
+        gifContainer.style.display = 'flex';
+        gifContainer.style.visibility = 'visible';
+
+        // Hide video/canvas; keep video configured but unused
+        engineVideo.pause?.();
+        engineVideo.style.display = 'none';
+        engineVideo.style.visibility = 'hidden';
+        engineVideoCanvas.style.display = 'none';
+
+        if (engineVideoStatus) {
+            engineVideoStatus.textContent = '';
+            engineVideoStatus.style.display = 'none';
+        }
+
+        // Never set a video src in image-only mode
+        engineVideo.removeAttribute('src');
+        engineVideo.load?.();
+    }
+    initEngineVideo();
+
+    function processVideoFrame() {
+        // Image-only mode: keep canvas hidden and show fallback image
+        if (!engineVideoCanvas) return;
+        engineVideoCanvas.style.display = 'none';
+        if (engineVideoFallback) engineVideoFallback.style.display = 'block';
+        if (engineVideoStatus) engineVideoStatus.style.display = 'none';
+    }
+
+    function updateGifVisualizer(rpm) {
+        if (!gifContainer || !engineVideoFallback) return;
+
+        const rpmNormalized = Math.max(0, Math.min(1, (rpm - IDLE_RPM) / (RPM_END - IDLE_RPM)));
+        const speedMax = typeof MAX_SPEED_KMH !== 'undefined' ? MAX_SPEED_KMH : 200;
+        const speedVal = typeof currentSpeed !== 'undefined' ? currentSpeed : 0;
+        const speedNormalized = Math.max(0, Math.min(1, speedVal / speedMax));
+        const isInRedZone = rpm >= REV_LIMIT;
+        const isOverheatingVisual = (isInRedZone && GOVERNOR_ENABLED) || isOverheating;
+        const isNearTopSpeed = rpm >= RPM_END * 0.9;
+        const isEngineActivelyRunning = isEngineRunning && rpm >= 1;
+
+        const desiredSrc = isEngineActivelyRunning ? resolveGifPath(ENGINE_TYPE) : resolvePngPath(ENGINE_TYPE);
+        if (engineVideoFallback.src !== desiredSrc) {
+            engineVideoFallback.src = desiredSrc;
+        }
+
+        gifContainer.style.display = 'flex';
+        gifContainer.style.visibility = 'visible';
+        gifContainer.style.opacity = isEngineActivelyRunning ? '0.8' : '0.3';
+
+        // Keep video/canvas hidden in image mode
+        engineVideo.pause?.();
+        engineVideo.style.display = 'none';
+        engineVideoCanvas.style.display = 'none';
+        engineVideoStatus && (engineVideoStatus.style.display = 'none');
+
+        let filter = '';
+        let transform = '';
+
+        if (isOverheatingVisual) {
+            filter = `brightness(1.5) contrast(1.5) sepia(1.0) saturate(5.0) hue-rotate(-30deg) drop-shadow(0 0 20px rgba(255, 0, 0, 0.8))`;
+            const shakeX = (Math.random() - 0.5) * 8;
+            const shakeY = (Math.random() - 0.5) * 8;
+            const wobble = Math.sin(Date.now() / 30) * 5;
+            transform = `translate(${shakeX}px, ${shakeY}px) rotate(${wobble}deg)`;
+        } else if (isNearTopSpeed) {
+            const redIntensity = 0.9;
+            filter = `brightness(1.2) contrast(1.2) sepia(${redIntensity}) saturate(3.0) hue-rotate(-20deg)`;
+            const shakeX = (Math.random() - 0.5) * 6;
+            const shakeY = (Math.random() - 0.5) * 6;
+            const wobble = Math.sin(Date.now() / 45) * 4;
+            transform = `translate(${shakeX}px, ${shakeY}px) rotate(${wobble}deg)`;
+        } else if (isInRedZone) {
+            filter = `brightness(1.1) contrast(1.1) sepia(0.5) saturate(2.0) hue-rotate(-15deg)`;
+            const shakeX = (Math.random() - 0.5) * 4;
+            const shakeY = (Math.random() - 0.5) * 4;
+            const wobble = Math.sin(Date.now() / 50) * 3;
+            transform = `translate(${shakeX}px, ${shakeY}px) rotate(${wobble}deg)`;
+        } else if (rpm > IDLE_RPM + 500) {
+            filter = `brightness(1.0) contrast(1.05) sepia(0.2) saturate(1.2) hue-rotate(60deg)`;
+            const wobbleIntensity = rpmNormalized * 2;
+            const wobbleSpeed = 250 - (rpmNormalized * 150);
+            const wobble = Math.sin(Date.now() / wobbleSpeed) * wobbleIntensity;
+            transform = `rotate(${wobble}deg)`;
+        } else {
+            filter = `brightness(0.95) contrast(1.0) sepia(0.1) saturate(1.1) hue-rotate(40deg)`;
+            transform = 'none';
+        }
+
+        engineVideoFallback.style.filter = `${filter}`;
+        engineVideoFallback.style.transform = transform;
+        engineVideoFallback.style.display = 'block';
+    }
+    
+    // Call immediately after function definition to show static image when engine is off (initial state)
+    // Use requestAnimationFrame to ensure DOM is ready
+    requestAnimationFrame(() => {
+        // Engine starts as off (isEngineRunning = false, currentRPM = 0)
+        updateGifVisualizer(0); // Show static image for engine off state
+    });
+    
+    // Directional Arrow Indicator Update Function
+    function updateDirectionIndicator() {
+        const arrowSvg = document.getElementById('direction-arrow');
+        const arrowPath = document.getElementById('arrow-path');
+        if (!arrowSvg || !arrowPath) return;
+        
+        let rotation = 0; // 0 = up, 90 = right, 180 = down, -90 = left
+        let fillColor = '#66fcf1'; // Default cyan
+        let strokeColor = '#66fcf1';
+        let filter = 'none';
+        let slipOffset = 0;
+        
+        // Determine direction based on arrow keys (priority: left/right > up/down)
+        // Handle multi-input: if both left and right are pressed, show brake lights
+        // If both up and down are pressed, show brake lights
+        if (isLeftArrowPressed || isRightArrowPressed) {
+            // Left or right arrow pressed - show brake lights (red and orange)
+            if (isLeftArrowPressed && !isRightArrowPressed) {
+                rotation = -90; // Point left
+            } else if (isRightArrowPressed && !isLeftArrowPressed) {
+                rotation = 90; // Point right
+            } else {
+                // Both left and right pressed - point up (neutral position) but show brake lights
+                rotation = 0;
+            }
+            fillColor = '#ff4444'; // Red
+            strokeColor = '#ff8844'; // Orange
+            filter = 'url(#glow-brake)';
+        } else if (isThrottlePressed && !isDownArrowPressed) {
+            rotation = 0; // Point up
+            fillColor = '#00ff00'; // Green
+            strokeColor = '#00ff00';
+            filter = 'url(#glow-green)';
+        } else if (isDownArrowPressed && !isThrottlePressed) {
+            rotation = 180; // Point down
+            fillColor = '#ff0000'; // Red
+            strokeColor = '#ff0000';
+            filter = 'url(#glow-red)';
+        } else if (isThrottlePressed && isDownArrowPressed) {
+            // Both up and down pressed - show brake lights
+            rotation = 0;
+            fillColor = '#ff4444'; // Red
+            strokeColor = '#ff8844'; // Orange
+            filter = 'url(#glow-brake)';
+        }
+        
+        // Add slip effect when drifting (oscillate slightly)
+        if (isDrifting) {
+            const slipOscillation = limiterOscillation * 2;
+            slipOffset = Math.sin(slipOscillation) * 5; // 5px oscillation
+            // Make it more visible during drift
+            filter = 'url(#glow-brake)';
+        }
+        
+        // Apply rotation and slip offset
+        arrowSvg.style.transform = `rotate(${rotation}deg) translateX(${slipOffset}px)`;
+        arrowPath.setAttribute('fill', fillColor);
+        arrowPath.setAttribute('stroke', strokeColor);
+        arrowPath.setAttribute('filter', filter);
+        
+        // Add pulsing effect when drifting
+        if (isDrifting) {
+            const pulseIntensity = 0.5 + Math.abs(Math.sin(limiterOscillation * 3)) * 0.5;
+            arrowSvg.style.opacity = 0.7 + pulseIntensity * 0.3;
+            arrowSvg.style.transform += ` scale(${1 + pulseIntensity * 0.2})`;
+        } else {
+            arrowSvg.style.opacity = '1';
+        }
+    }
+    
+    // Custom Matter Update (kept for compatibility, but may be hidden)
+    function updateVisualizer(rpm) {
+        // Update GIF visualizer
+        updateGifVisualizer(rpm);
+        
+        // Manually animate kinematic bodies for stability at high RPM
+        // Matter.js physics breaks at 8000 RPM equivalent without sub-stepping
+        // So we switch to kinematic animation
+        
+        const time = Date.now() / 1000;
+        const rads = (rpm / 60) * Math.PI * 2 * time; // Continuous rotation
+        
+        // We need a persistent angle accumulator
+        if (!mEngine.angle) mEngine.angle = 0;
+        mEngine.angle += (rpm / 60) * Math.PI * 2 * (1/60); // Assuming 60fps
+        
+        const cx = canvas.clientWidth / 2;
+        const cy = canvas.clientHeight / 2 + 50;
+        const r = 40;
+        const l = 120;
+        
+        // Kinematics: Piston Position
+        // y = r cos A + sqrt(l^2 - r^2 sin^2 A)
+        const a = mEngine.angle;
+        const sinA = Math.sin(a);
+        const cosA = Math.cos(a);
+        
+        const pinX = cx + r * sinA;
+        const pinY = cy - r * cosA;
+        
+        const pistonYOffset = r * cosA + Math.sqrt(l*l - r*r * sinA*sinA);
+        const pistonY = cy - pistonYOffset;
+        
+        // Force positions (Kinematic mode) only if bodies exist
+        if (mEngine.pinBody && mEngine.pistonBody) {
+        Body.setPosition(mEngine.pinBody, { x: pinX, y: pinY });
+        Body.setPosition(mEngine.pistonBody, { x: cx, y: pistonY });
+        
+        // Rotate rod
+        const rodAngle = Math.asin((r * sinA) / l);
+            const rodBody = mEngine.world.bodies.find(b => b.label !== 'Circle Body');
+            if (rodBody) {
+                Body.setAngle(rodBody, -rodAngle);
+            }
+        }
+    }
+
+
+    // ==========================================
+    // 5. WAVEFORM VISUALIZER
+    // ==========================================
+    const waveCanvas = document.getElementById('wave-canvas');
+    const waveCtx = waveCanvas.getContext('2d');
+    
+    function drawWaveform() {
+        if (!analyser) return;
+        const values = analyser.getValue();
+        waveCanvas.width = waveCanvas.clientWidth;
+        waveCanvas.height = waveCanvas.clientHeight;
+        
+        waveCtx.clearRect(0, 0, waveCanvas.width, waveCanvas.height);
+        waveCtx.beginPath();
+        waveCtx.lineJoin = "round";
+        waveCtx.lineWidth = 2;
+        waveCtx.strokeStyle = "#66fcf1";
+        
+        waveCtx.moveTo(0, waveCanvas.height / 2);
+        
+        for (let i = 0; i < values.length; i++) {
+            const x = (i / values.length) * waveCanvas.width;
+            const y = (0.5 + values[i] * 2) * waveCanvas.height / 2; // Scale up
+            waveCtx.lineTo(x, y);
+        }
+        waveCtx.stroke();
+    }
+
+
+    // ==========================================
+    // 6. INPUT HANDLING & EVENTS
+    // ==========================================
+    
+    // Ignition
+    startBtn.addEventListener('click', () => {
+        if (!isEngineRunning) {
+            initAudio().then(() => {
+                startBtn.innerText = "ENGINE RUNNING";
+                startBtn.classList.add('active');
+                statusDisp.innerText = "SYSTEM ONLINE // IDLE STABLE";
+                
+                // Start Loop
+                gameLoop();
+            });
+        } else {
+            // Stop logic could go here, but usually sim runs until reload
+            location.reload(); 
+        }
+    });
+
+    // Recording
+    document.getElementById('btn-record').addEventListener('click', () => {
+        if (!recorder || recorder.state === 'recording') return;
+        audioChunks = [];
+        recorder.start();
+        document.getElementById('rec-status').classList.add('rec-active');
+        document.getElementById('btn-record').disabled = true;
+        document.getElementById('btn-stop').disabled = false;
+        statusDisp.innerText = "RECORDING STREAM...";
+    });
+
+    document.getElementById('btn-stop').addEventListener('click', () => {
+        if (!recorder || recorder.state !== 'recording') return;
+        recorder.stop();
+    });
+
+    // Sliders
+    document.getElementById('slider-dist').addEventListener('input', (e) => {
+        DISTORTION_AMT = parseFloat(e.target.value);
+        DISTORTION_STRENGTH = DISTORTION_AMT; // Sync with advanced control
+        document.getElementById('val-dist').innerText = DISTORTION_AMT.toFixed(2);
+        document.getElementById('val-distortion-strength').innerText = DISTORTION_STRENGTH.toFixed(2);
+        document.getElementById('slider-distortion-strength').value = DISTORTION_STRENGTH;
+        if (synthEngine.distortion) {
+            synthEngine.distortion.distortion = DISTORTION_STRENGTH;
+        }
+    });
+    
+    document.getElementById('slider-backfire').addEventListener('input', (e) => {
+        BACKFIRE_CHANCE = parseFloat(e.target.value);
+        document.getElementById('val-backfire').innerText = BACKFIRE_CHANCE.toFixed(2);
+    });
+
+    document.getElementById('slider-limiter').addEventListener('input', (e) => {
+        REV_LIMIT = parseInt(e.target.value);
+        document.getElementById('val-limiter').innerText = REV_LIMIT;
+    });
+
+    // Governor checkbox
+    document.getElementById('governor-checkbox').addEventListener('change', (e) => {
+        GOVERNOR_ENABLED = e.target.checked;
+        if (!GOVERNOR_ENABLED) {
+            limiterOscillation = 0; // Reset oscillation when disabling
+        }
+    });
+    
+    // Speed Unit Toggle
+    document.getElementById('speed-unit-toggle').addEventListener('change', (e) => {
+        SPEED_UNIT_MPH = e.target.checked;
+        // Reinitialize speed gauge with new unit
+        initGauges();
+    });
+    
+    // Engine Reset Button
+    const resetBtn = document.getElementById('engine-reset-btn');
+    if (resetBtn) {
+        resetBtn.addEventListener('click', () => {
+            // Reset all engine state
+            engineHeat = 0;
+            engineTempF = TEMP_MIN_F;
+            isOverheating = false;
+            engineFailed = false;
+            limiterOscillation = 0;
+            speedSlipCycle = 0;
+            speedSlipCycleCount = 0;
+            
+            // Reset RPM if engine is running
+            if (isEngineRunning) {
+                targetRPM = IDLE_RPM;
+                currentRPM = IDLE_RPM;
+            }
+            
+            // Update temperature display
+            const tempBar = document.getElementById('temp-bar');
+            const tempValue = document.getElementById('temp-value');
+            if (tempBar && tempValue) {
+                tempBar.style.width = '0%';
+                tempValue.textContent = TEMP_MIN_F + '°F';
+                tempValue.style.color = '#ffffff';
+                tempValue.style.textShadow = 'none';
+            }
+            
+            console.log('Engine reset - all systems restored');
+        });
+    }
+    
+    // Speed/RPM Config Toggle - fixed to work properly
+    const toggleSpeedConfig = document.getElementById('toggle-speed-config');
+    if (toggleSpeedConfig) {
+        toggleSpeedConfig.addEventListener('click', () => {
+            const panel = document.getElementById('speed-rpm-config');
+            const btn = document.getElementById('toggle-speed-config');
+            if (panel && btn) {
+                if (panel.style.display === 'none' || panel.style.display === '') {
+                    panel.style.display = 'block';
+                    btn.innerText = 'HIDE SPEED/RPM CONFIG';
+                } else {
+                    panel.style.display = 'none';
+                    btn.innerText = 'SHOW SPEED/RPM CONFIG';
+                }
+            }
+        });
+    }
+    
+    // Speed/RPM Config Sliders
+    document.getElementById('slider-max-speed-kmh').addEventListener('input', (e) => {
+        MAX_SPEED_KMH = parseInt(e.target.value);
+        document.getElementById('val-max-speed-kmh').innerText = MAX_SPEED_KMH;
+        if (!SPEED_UNIT_MPH) {
+            initGauges();
+        }
+    });
+    
+    document.getElementById('slider-max-speed-mph').addEventListener('input', (e) => {
+        MAX_SPEED_MPH = parseInt(e.target.value);
+        document.getElementById('val-max-speed-mph').innerText = MAX_SPEED_MPH;
+        if (SPEED_UNIT_MPH) {
+            initGauges();
+        }
+    });
+    
+    document.getElementById('slider-rpm-start').addEventListener('input', (e) => {
+        RPM_START = parseInt(e.target.value);
+        if (RPM_START >= RPM_END) RPM_START = RPM_END - 100;
+        document.getElementById('val-rpm-start').innerText = RPM_START;
+        initGauges();
+    });
+    
+    document.getElementById('slider-rpm-end').addEventListener('input', (e) => {
+        RPM_END = parseInt(e.target.value);
+        if (RPM_END <= RPM_START) RPM_END = RPM_START + 100;
+        document.getElementById('val-rpm-end').innerText = RPM_END;
+        initGauges();
+    });
+    
+    // Advanced Panel Toggle
+    document.getElementById('toggle-advanced').addEventListener('click', () => {
+        const panel = document.getElementById('advanced-panel');
+        const btn = document.getElementById('toggle-advanced');
+        if (panel.style.display === 'none') {
+            panel.style.display = 'block';
+            btn.innerText = 'HIDE ADVANCED';
+        } else {
+            panel.style.display = 'none';
+            btn.innerText = 'SHOW ADVANCED';
+        }
+    });
+    
+    // Advanced Controls Event Listeners
+    document.getElementById('engine-type').addEventListener('change', async (e) => {
+        ENGINE_TYPE = e.target.value;
+        await loadEnginePreset(ENGINE_TYPE);
+    });
+    
+    document.getElementById('slider-base-pitch').addEventListener('input', (e) => {
+        BASE_PITCH = parseFloat(e.target.value);
+        document.getElementById('val-base-pitch').innerText = BASE_PITCH;
+    });
+    
+    document.getElementById('slider-pitch-range').addEventListener('input', (e) => {
+        PITCH_RANGE = parseFloat(e.target.value);
+        document.getElementById('val-pitch-range').innerText = PITCH_RANGE.toFixed(1);
+    });
+    
+    document.getElementById('slider-distortion-strength').addEventListener('input', (e) => {
+        DISTORTION_STRENGTH = parseFloat(e.target.value);
+        DISTORTION_AMT = DISTORTION_STRENGTH; // Sync with main control
+        document.getElementById('val-distortion-strength').innerText = DISTORTION_STRENGTH.toFixed(2);
+        document.getElementById('val-dist').innerText = DISTORTION_AMT.toFixed(2);
+        document.getElementById('slider-dist').value = DISTORTION_AMT;
+        if (synthEngine && synthEngine.distortion) {
+            synthEngine.distortion.distortion = DISTORTION_STRENGTH;
+        }
+    });
+    
+    document.getElementById('slider-highpass').addEventListener('input', (e) => {
+        HIGHPASS_FREQ = parseFloat(e.target.value);
+        document.getElementById('val-highpass').innerText = HIGHPASS_FREQ;
+        if (synthEngine && synthEngine.highpass) {
+            synthEngine.highpass.frequency.value = HIGHPASS_FREQ;
+        }
+    });
+    
+    document.getElementById('slider-lowpass').addEventListener('input', (e) => {
+        LOWPASS_FREQ = parseFloat(e.target.value);
+        document.getElementById('val-lowpass').innerText = LOWPASS_FREQ;
+        if (synthEngine && synthEngine.lowpass) {
+            synthEngine.lowpass.frequency.value = LOWPASS_FREQ;
+        }
+    });
+    
+    document.getElementById('slider-sub-vol').addEventListener('input', (e) => {
+        SUB_OSC_VOL = parseFloat(e.target.value);
+        document.getElementById('val-sub-vol').innerText = SUB_OSC_VOL;
+        if (synthEngine && synthEngine.oscSub) {
+            synthEngine.oscSub.volume.value = SUB_OSC_VOL;
+        }
+    });
+    
+    document.getElementById('slider-noise-amt').addEventListener('input', (e) => {
+        NOISE_AMOUNT = parseFloat(e.target.value);
+        document.getElementById('val-noise-amt').innerText = NOISE_AMOUNT.toFixed(2);
+    });
+    
+    document.getElementById('slider-resonance').addEventListener('input', (e) => {
+        RESONANCE = parseFloat(e.target.value);
+        document.getElementById('val-resonance').innerText = RESONANCE.toFixed(1);
+        if (synthEngine && synthEngine.lowpass) {
+            synthEngine.lowpass.Q.value = RESONANCE;
+        }
+    });
+
+    // Acceleration Sensitivity Slider
+    document.getElementById('slider-accel-sens').addEventListener('input', (e) => {
+        ACCELERATION_SENSITIVITY = parseFloat(e.target.value);
+        document.getElementById('val-accel-sens').innerText = ACCELERATION_SENSITIVITY.toFixed(2);
+    });
+    
+    // Speed/RPM Config Sliders
+    document.getElementById('slider-max-speed-kmh').addEventListener('input', (e) => {
+        MAX_SPEED_KMH = parseInt(e.target.value);
+        document.getElementById('val-max-speed-kmh').innerText = MAX_SPEED_KMH;
+        if (!SPEED_UNIT_MPH && speedGaugeEl) {
+            speedGaugeEl.innerHTML = '';
+            initGauges();
+        }
+    });
+    
+    document.getElementById('slider-max-speed-mph').addEventListener('input', (e) => {
+        MAX_SPEED_MPH = parseInt(e.target.value);
+        document.getElementById('val-max-speed-mph').innerText = MAX_SPEED_MPH;
+        if (SPEED_UNIT_MPH && speedGaugeEl) {
+            speedGaugeEl.innerHTML = '';
+            initGauges();
+        }
+    });
+    
+    document.getElementById('slider-rpm-start').addEventListener('input', (e) => {
+        RPM_START = parseInt(e.target.value);
+        if (RPM_START >= RPM_END) RPM_START = RPM_END - 100;
+        document.getElementById('val-rpm-start').innerText = RPM_START;
+        if (rpmGaugeEl) {
+            rpmGaugeEl.innerHTML = '';
+            initGauges();
+        }
+    });
+    
+    document.getElementById('slider-rpm-end').addEventListener('input', (e) => {
+        RPM_END = parseInt(e.target.value);
+        if (RPM_END <= RPM_START) RPM_END = RPM_START + 100;
+        document.getElementById('val-rpm-end').innerText = RPM_END;
+        if (rpmGaugeEl) {
+            rpmGaugeEl.innerHTML = '';
+            initGauges();
+        }
+    });
+
+    // Unified input handler - makes both slider and arrows work identically with dynamic physics
+    // Variables already declared above - use them here
+    
+    // Quick Test Radial Slider - Fully recoded for dynamic feel
+    const radialTester = document.getElementById('radial-tester');
+    radialTester.addEventListener('input', (e) => {
+        const val = parseInt(e.target.value);
+        isSliderActive = true;
+        throttleInput = 0; // Disable throttle input while using slider
+        
+        // Set target RPM - let physics handle it dynamically (ensures slip/backfire work)
+        targetRPM = Math.max(IDLE_RPM, Math.min(RPM_END, val));
+        
+        // Update engine load based on RPM position
+        engineLoad = Math.min(1.0, val / REV_LIMIT);
+    });
+    
+    radialTester.addEventListener('mousedown', () => {
+        isSliderActive = true;
+    });
+    
+    radialTester.addEventListener('mouseup', () => {
+        // On release, let it return to idle naturally through physics
+        isSliderActive = false;
+    });
+    
+    radialTester.addEventListener('change', () => {
+        // On change (release), let physics handle return to idle
+        isSliderActive = false;
+        throttleInput = 0;
+        engineLoad = 0; // Immediately set load to 0 for instant audio response
+        // Immediately update audio
+        if (isEngineRunning && synthEngine.oscMain) {
+            updateAudioPhysics(currentRPM, 0);
+        }
+    });
+
+    // Keyboard Controls - Fully recoded for dynamic feel with limiter slip
+    window.addEventListener('keydown', (e) => {
+        if (isSliderActive) return; // Ignore if slider is active
+        
+        if (e.key === 'ArrowUp' && !isThrottlePressed) {
+            isThrottlePressed = true;
+            throttleInput = 1.0; // Full throttle
+            // Sync slider visual
+            radialTester.value = Math.round(currentRPM);
+        }
+        
+        if (e.key === 'ArrowDown') {
+            isDownArrowPressed = true;
+            throttleInput = 0;
+            isThrottlePressed = false;
+            // Brake/Drag - decelerate faster
+            targetRPM = Math.max(IDLE_RPM, targetRPM - 300);
+            radialTester.value = Math.round(targetRPM);
+        }
+        
+        // ==========================================
+        // ARROW KEY DRIFT SLIP - DISABLED (COMMENTED OUT)
+        // Uncomment this section to re-enable arrow key drift slip functionality
+        // ==========================================
+        /*
+        // Drift input detection
+        if (e.key === ' ') {
+            isSpacePressed = true;
+        }
+        if (e.key === 'ArrowLeft') {
+            isLeftArrowPressed = true;
+        }
+        if (e.key === 'ArrowRight') {
+            isRightArrowPressed = true;
+        }
+        
+        // Check for drift combinations: (Up OR Down) AND (Space OR Left OR Right)
+        // This includes: Up+Space, Up+Left, Up+Right, Down+Left+Up+Space, Down+Right+Up+Space
+        isDrifting = (isThrottlePressed || isDownArrowPressed) && (isSpacePressed || isLeftArrowPressed || isRightArrowPressed);
+        */
+        // DISABLED: Arrow key drift slip is off
+        // Still track arrow keys for direction indicator visual only
+        if (e.key === 'ArrowLeft') {
+            isLeftArrowPressed = true;
+        }
+        if (e.key === 'ArrowRight') {
+            isRightArrowPressed = true;
+        }
+        // DISABLED: Spacebar drift removed above, so no drift combinations
+        isDrifting = false;
+    });
+
+    window.addEventListener('keyup', (e) => {
+        if (e.key === 'ArrowUp') {
+            throttleInput = 0;
+            isThrottlePressed = false;
+            engineLoad = 0; // Immediately set load to 0 for instant audio response
+            // Immediately update audio to reflect throttle release
+            if (isEngineRunning && synthEngine.oscMain) {
+                updateAudioPhysics(currentRPM, 0);
+            }
+            // Sync slider visual
+            radialTester.value = Math.round(currentRPM);
+        }
+        
+        if (e.key === 'ArrowDown') {
+            isDownArrowPressed = false;
+        }
+        
+        // ==========================================
+        // ARROW KEY DRIFT SLIP - DISABLED (COMMENTED OUT)
+        // ==========================================
+        /*
+        // Drift input release
+        if (e.key === ' ') {
+            isSpacePressed = false;
+        }
+        if (e.key === 'ArrowLeft') {
+            isLeftArrowPressed = false;
+        }
+        if (e.key === 'ArrowRight') {
+            isRightArrowPressed = false;
+        }
+        
+        // Update drift state
+        // Drift triggers when: (Up OR Down) AND (Space OR Left OR Right)
+        isDrifting = (isThrottlePressed || isDownArrowPressed) && (isSpacePressed || isLeftArrowPressed || isRightArrowPressed);
+        */
+        // DISABLED: Arrow key drift slip is off
+        // Still track arrow keys for direction indicator visual only
+        if (e.key === 'ArrowLeft') {
+            isLeftArrowPressed = false;
+        }
+        if (e.key === 'ArrowRight') {
+            isRightArrowPressed = false;
+        }
+        // DISABLED: No drift state updates
+        isDrifting = false;
+    });
+
+    // ==========================================
+    // VOLUME CONTROL
+    // ==========================================
+    let isMuted = false;
+    let savedVolume = 50; // Default volume percentage
+
+    const volumeBtn = document.getElementById('volume-btn');
+    const volumeSlider = document.getElementById('volume-slider');
+    const volumeValue = document.getElementById('volume-value');
+    const volumeSliderContainer = document.getElementById('volume-slider-container');
+
+    // Toggle mute on button click (works even before audio starts)
+    volumeBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        
+        isMuted = !isMuted;
+        
+        // Update UI immediately
+        if (isMuted) {
+            volumeBtn.classList.add('muted');
+            volumeBtn.innerText = 'MUTE';
+        } else {
+            volumeBtn.classList.remove('muted');
+            volumeBtn.innerText = 'VOL';
+        }
+        
+        // Apply to audio if it's already initialized
+        if (synthEngine.masterGain) {
+            if (isMuted) {
+                // Mute: set gain to 0
+                synthEngine.masterGain.gain.value = 0;
+            } else {
+                // Unmute: restore saved volume
+                const volume = savedVolume / 100;
+                synthEngine.masterGain.gain.value = volume;
+            }
+        }
+    });
+
+    // Volume slider change (works even before audio starts)
+    volumeSlider.addEventListener('input', (e) => {
+        const volume = parseInt(e.target.value);
+        savedVolume = volume;
+        
+        // Update display
+        volumeValue.innerText = volume + '%';
+        
+        // Apply to audio if it's already initialized and not muted
+        if (synthEngine.masterGain && !isMuted) {
+            const gainValue = volume / 100;
+            synthEngine.masterGain.gain.value = gainValue;
+        }
+        
+        // If unmuting by adjusting slider
+        if (isMuted && volume > 0) {
+            isMuted = false;
+            volumeBtn.classList.remove('muted');
+            volumeBtn.innerText = 'VOL';
+            // Apply volume if audio is initialized
+            if (synthEngine.masterGain) {
+                synthEngine.masterGain.gain.value = volume / 100;
+            }
+        }
+        
+        // If slider goes to 0, auto-mute
+        if (volume === 0 && !isMuted) {
+            isMuted = true;
+            volumeBtn.classList.add('muted');
+            volumeBtn.innerText = 'MUTE';
+            if (synthEngine.masterGain) {
+                synthEngine.masterGain.gain.value = 0;
+            }
+        }
+    });
+
+    // Show slider on hover or click
+    volumeBtn.addEventListener('mouseenter', () => {
+        volumeSliderContainer.classList.add('visible');
+    });
+
+    volumeSliderContainer.addEventListener('mouseleave', () => {
+        // Keep visible if actively adjusting
+        if (document.activeElement !== volumeSlider) {
+            volumeSliderContainer.classList.remove('visible');
+        }
+    });
+
+    // Keep slider visible while dragging
+    volumeSlider.addEventListener('mousedown', () => {
+        volumeSliderContainer.classList.add('visible');
+    });
+
+    volumeSlider.addEventListener('mouseup', () => {
+        // Small delay before hiding to allow for click
+        setTimeout(() => {
+            if (document.activeElement !== volumeSlider) {
+                volumeSliderContainer.classList.remove('visible');
+            }
+        }, 100);
+    });
+
+    // Sync masterGain to slider value and mute state (not the other way around)
+    // This ensures the slider value and mute state persist even before audio starts
+    function updateVolumeUI() {
+        if (synthEngine.masterGain && volumeSlider) {
+            // Use the slider value, not the gain value
+            const volume = parseInt(volumeSlider.value) || savedVolume;
+            savedVolume = volume;
+            
+            // Apply mute state if muted, otherwise apply volume
+            if (isMuted) {
+                synthEngine.masterGain.gain.value = 0;
+            } else {
+                const gainValue = volume / 100;
+                synthEngine.masterGain.gain.value = gainValue;
+            }
+            
+            // Update button state to match mute status
+            if (isMuted) {
+                volumeBtn.classList.add('muted');
+                volumeBtn.innerText = 'MUTE';
+            } else {
+                volumeBtn.classList.remove('muted');
+                volumeBtn.innerText = 'VOL';
+            }
+            
+            if (volumeValue) {
+                volumeValue.innerText = volume + '%';
+            }
+        }
+    }
+
+</script>
+</body>
+</html>

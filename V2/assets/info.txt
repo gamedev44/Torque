@@ -1,0 +1,9 @@
+## Information
+______________
+
+This image was taken from an online GIF created using the **Engine Sim** project, which is available on Steam and GitHub.  
+This is **not my original work** and is currently being used **only as a visual placeholder**.
+
+My intention is to create and include **custom engine GIFs** for each engine type I add to this project. These will replace the placeholder assets once I have the time to produce them. Please be patient while this work is in progress.
+
+Thanks to anyone choosing to try or build upon my engine simulation project. I explored other available solutions, but found them to be **overly complex for real-world use**, especially for **indie development teams**. This project aims to provide a more **approachable, practical, and user-friendly** alternative.

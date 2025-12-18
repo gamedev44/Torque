@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Torque.JS V3 Static Deployment</title>
+  <style>
+    body { background:#0b0c10; color:#c5c6c7; font-family: system-ui, sans-serif; margin:0; }
+    .container { max-width: 1000px; margin: 0 auto; padding: 40px 20px; }
+    h1, h2 { color:#66fcf1; text-shadow:0 0 20px rgba(102,252,241,.5); }
+    .nav { display:flex; gap:12px; flex-wrap:wrap; margin-bottom:24px; }
+    .cta { display:inline-block; padding:12px 20px; border:1px solid #66fcf1; color:#66fcf1; text-decoration:none; border-radius:6px; background: rgba(102,252,241,0.08); }
+    .card { background: rgba(31,40,51,0.6); border:1px solid rgba(102,252,241,.3); border-radius:10px; padding:20px; margin-bottom:18px; }
+    code { background: rgba(102,252,241,0.1); padding:2px 6px; border-radius:4px; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Static Deployment Guide</h1>
+    <div class="nav">
+      <a class="cta" href="../../V3/homepage.html">← V3 Home</a>
+      <a class="cta" href="./index.html">Docs</a>
+      <a class="cta" href="../../V3/torque-v3/webdist/index.html">Open Static Build</a>
+    </div>
+    <div class="card">
+      <h2>Overview</h2>
+      <p>The static build is located at <code>V3/torque-v3/webdist/</code>. Host this directory on any static server (e.g., GitHub Pages, Netlify, Vercel) to serve the app without a dev server.</p>
+    </div>
+    <div class="card">
+      <h2>Steps</h2>
+      <ol>
+        <li>Build or verify assets in <code>webdist</code>.</li>
+        <li>Upload the entire directory to your static host.</li>
+        <li>Ensure relative paths remain intact.</li>
+      </ol>
+    </div>
+    <div class="card">
+      <h2>Notes</h2>
+      <ul>
+        <li>Media and presets are under <code>V3/torque-v3/public/</code> and <code>presets/</code>.</li>
+        <li>For local preview, open <code>webdist/index.html</code> directly.</li>
+      </ul>
+    </div>
+    <p style="opacity:.8">This page will be expanded from STATIC_DEPLOYMENT.md. It’s now a site-visible HTML doc.</p>
+  </div>
+</body>
+</html>
+

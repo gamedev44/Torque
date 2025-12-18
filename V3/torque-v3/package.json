@@ -1,0 +1,21 @@
+{
+  "name": "torque-engine-sim",
+  "private": true,
+  "version": "3.0.0-alpha",
+  "description": "Torque.JS Engine Sound Emulator - Advanced engine physics and audio simulation",
+  "main": "dist/index.js",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "build:static": "vite build && node scripts/create-static-build.js",
+    "preview": "vite preview"
+  },
+  "devDependencies": {
+    "@types/dat.gui": "^0.7.7",
+    "typescript": "^4.9.4",
+    "vite": "^4.0.4"
+  },
+  "dependencies": {
+    "dat.gui": "^0.7.9"
+  }
+}

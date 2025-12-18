@@ -1,0 +1,905 @@
+<!DOCTYPE html>
+<!--
+    Torque.JS: Engine Sound Emulator V3
+    @license Semi-Open Source with Attribution
+    Copyright (c) 2025 Iron Will Interactive
+    Developed by: Asterisk
+    
+    This file is part of Torque.JS V3 - Advanced TypeScript Engine Sound Emulator
+    See LICENSE file for full license terms and attribution requirements.
+    
+    Maker's Mark: TQJS-V3-HTML-2025-IWI
+-->
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Torque.JS: Engine Sound Emulator (Build v3.0.0 alpha)</title>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* TORQUE THEME */
+        :root {
+            --bg-dark: #0b0c10;
+            --panel-bg: #1f2833;
+            --accent-cyan: #66fcf1;
+            --accent-dim: #45a29e;
+            --text-light: #c5c6c7;
+            --danger: #e74c3c;
+        }
+        
+        body {
+            background-color: var(--bg-dark);
+            color: var(--text-light);
+            font-family: 'Courier New', monospace;
+            overflow: hidden;
+            height: 100vh;
+            width: 100vw;
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        * {
+            box-sizing: border-box;
+        }
+        
+        /* GRID LAYOUT */
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: minmax(280px, 340px) 1fr minmax(240px, 280px);
+            grid-template-rows: minmax(50px, 60px) 1fr minmax(140px, 180px);
+            gap: 3px;
+            height: 100vh;
+            width: 100vw;
+            padding: 3px;
+            background: #000;
+            overflow: hidden;
+        }
+        
+        /* Remove scrollbars from specific panels */
+        #waveform-panel {
+            overflow: hidden !important;
+        }
+        
+        #recording-panel {
+            overflow: hidden !important;
+        }
+        
+        /* Ensure no black boxes appear */
+        * {
+            box-sizing: border-box;
+        }
+
+        .panel {
+            background: var(--panel-bg) !important;
+            border: 1px solid #333;
+            position: relative;
+            overflow: auto;
+            overflow-x: hidden;
+            display: flex;
+            flex-direction: column;
+            box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.5);
+        }
+        
+        /* Ensure all panels have proper background - no black boxes */
+        .panel,
+        #visualizer-panel,
+        #controls-panel,
+        #gauges-panel,
+        #waveform-panel {
+            background: var(--panel-bg) !important;
+        }
+        
+        /* Visualizer panel can have gradient but base should be panel-bg */
+        #visualizer-panel {
+            background: var(--panel-bg) !important;
+        }
+        
+        /* Video container fills telemetry window perfectly */
+        #gif-container {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            top: 0;
+            left: 0;
+            overflow: hidden;
+        }
+        
+        /* Video fills container and masks black */
+        #engine-video {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            object-position: center;
+            mix-blend-mode: screen; /* Masks out black colors */
+        }
+        
+        /* CUSTOM SCROLLBARS (Glowing Blue Theme) */
+        /* Webkit (Chrome, Safari, Edge) */
+        .panel::-webkit-scrollbar,
+        ::-webkit-scrollbar {
+            width: clamp(10px, 1.2vw, 14px);
+            height: clamp(10px, 1.2vw, 14px);
+        }
+        
+        .panel::-webkit-scrollbar-track,
+        ::-webkit-scrollbar-track {
+            background: #0a0a0a;
+            border: 1px solid #222;
+            border-radius: clamp(3px, 0.4vw, 5px);
+            box-shadow: inset 0 0 3px rgba(0, 0, 0, 0.8);
+        }
+        
+        .panel::-webkit-scrollbar-thumb,
+        ::-webkit-scrollbar-thumb {
+            background: linear-gradient(to bottom, #2a2a2a, #1a1a1a);
+            border: 1px solid #333;
+            border-radius: clamp(3px, 0.4vw, 5px);
+            box-shadow: 0 0 clamp(4px, 0.5vw, 6px) rgba(102, 252, 241, 0.3),
+                        inset 0 1px 2px rgba(255, 255, 255, 0.1);
+            transition: all 0.2s ease;
+        }
+        
+        .panel::-webkit-scrollbar-thumb:hover,
+        ::-webkit-scrollbar-thumb:hover {
+            background: linear-gradient(to bottom, #3a3a3a, #2a2a2a);
+            box-shadow: 0 0 clamp(6px, 0.8vw, 8px) rgba(102, 252, 241, 0.5),
+                        inset 0 1px 3px rgba(255, 255, 255, 0.15);
+            border-color: var(--accent-cyan);
+        }
+        
+        .panel::-webkit-scrollbar-thumb:active,
+        ::-webkit-scrollbar-thumb:active {
+            background: linear-gradient(to bottom, var(--accent-cyan), var(--accent-dim));
+            box-shadow: 0 0 clamp(8px, 1vw, 10px) var(--accent-cyan),
+                        inset 0 1px 4px rgba(255, 255, 255, 0.2);
+        }
+        
+        .panel::-webkit-scrollbar-corner,
+        ::-webkit-scrollbar-corner {
+            background: #0a0a0a;
+            border: 1px solid #222;
+        }
+        
+        /* Firefox */
+        .panel,
+        * {
+            scrollbar-width: thin;
+            scrollbar-color: rgba(102, 252, 241, 0.4) #0a0a0a;
+        }
+        
+        .panel:hover,
+        *:hover {
+            scrollbar-color: rgba(102, 252, 241, 0.6) #0a0a0a;
+        }
+
+        .panel-header {
+            background: #111;
+            color: var(--accent-cyan);
+            padding: 5px 10px;
+            font-size: 12px;
+            border-bottom: 1px solid var(--accent-dim);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-weight: bold;
+        }
+
+        .header-bar {
+            grid-column: 1 / -1;
+            background: var(--bg-dark);
+            border-bottom: 2px solid var(--accent-cyan);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 15px;
+        }
+
+        .btn-tech {
+            background: transparent;
+            border: 1px solid var(--accent-cyan);
+            color: var(--accent-cyan);
+            padding: 8px 16px;
+            font-family: inherit;
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-transform: uppercase;
+        }
+        
+        .btn-tech:hover {
+            background: var(--accent-cyan);
+            color: #000;
+            box-shadow: 0 0 10px var(--accent-cyan);
+        }
+
+        /* GLOWING BLUE SLIDERS (like Torque) - Applied to ALL sliders */
+        input[type="range"],
+        input[type="range"]:focus,
+        input[type="range"]:active {
+            width: 100%;
+            height: clamp(6px, 0.8vw, 8px);
+            background: transparent;
+            border: none;
+            outline: none;
+            -webkit-appearance: none;
+            appearance: none;
+            cursor: pointer;
+            margin: clamp(8px, 1vw, 12px) 0;
+        }
+
+        /* Webkit Track */
+        input[type="range"]::-webkit-slider-runnable-track {
+            width: 100%;
+            height: clamp(6px, 0.8vw, 8px);
+            background: linear-gradient(to right, #0a0a0a 0%, #1a1a1a 25%, #2a2a2a 50%, #1a1a1a 75%, #0a0a0a 100%);
+            border: 1px solid #333;
+            border-radius: clamp(3px, 0.4vw, 4px);
+            box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.8);
+        }
+
+        /* Webkit Thumb */
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: clamp(16px, 2vw, 20px);
+            height: clamp(16px, 2vw, 20px);
+            background: var(--accent-cyan);
+            border: 2px solid #fff;
+            border-radius: 50%;
+            cursor: pointer;
+            margin-top: clamp(-6px, -0.8vw, -8px);
+            box-shadow: 0 0 clamp(10px, 1.2vw, 14px) var(--accent-cyan), 
+                        0 0 clamp(5px, 0.6vw, 7px) rgba(102, 252, 241, 0.7),
+                        inset 0 1px 2px rgba(255, 255, 255, 0.4),
+                        inset 0 -1px 2px rgba(0, 0, 0, 0.3);
+            transition: all 0.2s ease;
+        }
+
+        input[type="range"]::-webkit-slider-thumb:hover {
+            box-shadow: 0 0 clamp(14px, 1.8vw, 18px) var(--accent-cyan), 
+                        0 0 clamp(7px, 0.9vw, 9px) rgba(102, 252, 241, 0.9),
+                        inset 0 1px 3px rgba(255, 255, 255, 0.5),
+                        inset 0 -1px 3px rgba(0, 0, 0, 0.4);
+            transform: scale(1.1);
+        }
+
+        input[type="range"]::-webkit-slider-thumb:active {
+            box-shadow: 0 0 clamp(18px, 2.2vw, 22px) var(--accent-cyan), 
+                        0 0 clamp(9px, 1.1vw, 11px) rgba(102, 252, 241, 1),
+                        inset 0 1px 4px rgba(255, 255, 255, 0.6),
+                        inset 0 -1px 4px rgba(0, 0, 0, 0.5);
+            transform: scale(1.05);
+        }
+
+        /* Firefox Track */
+        input[type="range"]::-moz-range-track {
+            width: 100%;
+            height: clamp(6px, 0.8vw, 8px);
+            background: linear-gradient(to right, #0a0a0a 0%, #1a1a1a 25%, #2a2a2a 50%, #1a1a1a 75%, #0a0a0a 100%);
+            border: 1px solid #333;
+            border-radius: clamp(3px, 0.4vw, 4px);
+            box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.8);
+        }
+
+        /* Firefox Thumb */
+        input[type="range"]::-moz-range-thumb {
+            width: clamp(16px, 2vw, 20px);
+            height: clamp(16px, 2vw, 20px);
+            background: var(--accent-cyan);
+            border: 2px solid #fff;
+            border-radius: 50%;
+            cursor: pointer;
+            box-shadow: 0 0 clamp(10px, 1.2vw, 14px) var(--accent-cyan), 
+                        0 0 clamp(5px, 0.6vw, 7px) rgba(102, 252, 241, 0.7),
+                        inset 0 1px 2px rgba(255, 255, 255, 0.4);
+            transition: all 0.2s ease;
+        }
+
+        input[type="range"]::-moz-range-thumb:hover {
+            box-shadow: 0 0 clamp(14px, 1.8vw, 18px) var(--accent-cyan), 
+                        0 0 clamp(7px, 0.9vw, 9px) rgba(102, 252, 241, 0.9);
+        }
+
+        input[type="range"]::-moz-range-thumb:active {
+            box-shadow: 0 0 clamp(18px, 2.2vw, 22px) var(--accent-cyan), 
+                        0 0 clamp(9px, 1.1vw, 11px) rgba(102, 252, 241, 1);
+        }
+
+        /* Remove Firefox focus outline */
+        input[type="range"]::-moz-focus-outer {
+            border: 0;
+        }
+
+        .status-display {
+            font-size: 11px;
+            color: var(--text-light);
+            font-family: 'Courier New', monospace;
+        }
+
+        .gauge-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+            padding: 10px;
+        }
+
+        .gauge-value {
+            font-size: 24px;
+            color: var(--accent-cyan);
+            font-weight: bold;
+        }
+
+        .gauge-label {
+            font-size: 12px;
+            color: var(--text-light);
+            text-transform: uppercase;
+        }
+
+        /* METER SYSTEM (Visual Gauges) */
+        .meter {
+            display: inline-block;
+            position: relative;
+            width: 200px;
+            height: 200px;
+            background-color: #111;
+            border-radius: 50%;
+            margin: 0.5rem;
+            box-shadow: inset 0 3px 6px rgba(0,0,0,0.5), inset 0 3px 6px rgba(0,0,0,0.7);
+            border: none;
+        }
+        
+        .meter#gauge-speed {
+            width: 250px;
+            height: 250px;
+            margin-bottom: 10px;
+        }
+
+        .meter:before {
+            content: "";
+            display: block;
+            position: absolute;
+            width: calc(100% + 7%);
+            left: -3.5%;
+            top: -3.5%;
+            bottom: -3.5%;
+            border-radius: 50%;
+            background: transparent;
+            z-index: -1;
+        }
+
+        .label {
+            position: absolute;
+            left: 50%;
+            transform: translate3d(-50%, -50%, 0);
+            text-align: center;
+            color: var(--text-light);
+        }
+
+        .label-value {
+            color: var(--text-light);
+            top: 50%;
+            line-height: 1.25;
+        }
+        
+        .label-value div {
+            background: linear-gradient(to bottom, #222, #333);
+            padding: 5px 10px;
+            border-radius: 3px;
+            border: 1px solid #444;
+            font-family: 'Courier New', monospace;
+            font-style: italic;
+        }
+
+        .label-value div, .label-value span {
+            font-size: 0;
+        }
+
+        .meter--big-label .label-value div, .meter--big-label .label-value span {
+            font-size: 1.5rem;
+        }
+
+        .meter--big-label .label-value span {
+            font-size: 0.9rem;
+        }
+
+        .label-value span {
+            display: block;
+            position: absolute;
+            left: 50%;
+            transform: translate3d(-50%, 0, 0);
+        }
+
+        .label-unit {
+            top: 82.5%;
+        }
+
+        .label-unit div {
+            font-size: 0.9rem;
+        }
+
+        .meter--big-label .label-unit div {
+            font-size: 0;
+        }
+
+        .needle {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            display: block;
+            width: 3px;
+            height: 90px;
+            transform: translate3d(-50%, 0, 0);
+            transform-origin: 50% 0;
+            background-color: var(--accent-cyan);
+            box-shadow: 0 0 4px rgba(102, 252, 241, 0.5);
+            z-index: 10;
+            transition: transform 0.05s linear;
+        }
+
+        .needle:before,
+        .needle:after {
+            display: block;
+            position: absolute;
+            content: "";
+            width: 0;
+            height: 0;
+            border-style: solid;
+        }
+
+        .needle:before {
+            left: -4px;
+            border-width: 0 4px 90px 0;
+            border-color: transparent var(--accent-cyan) transparent transparent;
+            filter: drop-shadow(0 0 2px rgba(102, 252, 241, 0.6));
+        }
+
+        .needle:after {
+            right: -4px;
+            border-width: 90px 4px 0 0;
+            border-color: rgba(102, 252, 241, 0.7) transparent transparent transparent;
+        }
+
+        .needle-axle {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            display: block;
+            width: 12%;
+            height: 12%;
+            transform: translate3d(-50%, -50%, 0);
+            border-radius: 50%;
+            background-color: #222;
+            color: var(--accent-cyan);
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.8), 0 0 8px rgba(102, 252, 241, 0.3);
+            cursor: pointer;
+            z-index: 11;
+            border: 2px solid #333;
+        }
+
+        .needle-axle:hover {
+            background-color: #000;
+        }
+
+        .meter--big-label .needle-axle {
+            width: 37.5%;
+            height: 37.5%;
+        }
+
+        .grad {
+            position: absolute;
+            display: inline-block;
+            font-size: 0.9rem;
+            line-height: 1;
+            color: var(--text-light);
+            transform: translate3d(-50%, -50%, 0);
+            font-weight: bold;
+            z-index: 5;
+            text-shadow: 0 0 3px rgba(0, 0, 0, 0.8);
+        }
+
+        .grad.redzone {
+            color: var(--danger);
+            text-shadow: 0 0 5px rgba(231, 76, 60, 0.8);
+        }
+
+        .meter--rpm .grad {
+            font-size: 1.1rem;
+        }
+        
+        .meter--speed .grad {
+            font-size: 0.85rem;
+        }
+
+        .grad-tick {
+            position: absolute;
+            display: block;
+            width: 3px;
+            height: 0.75em;
+            transform-origin: 50% 0;
+            background-color: var(--text-light);
+            z-index: 4;
+        }
+
+        .grad-tick--half {
+            width: 2px;
+            height: 0.5em;
+        }
+
+        .grad-tick--quarter {
+            width: 1px;
+            height: 0.25em;
+        }
+
+        .grad-tick.redzone,
+        .grad-tick--half.redzone,
+        .grad-tick--quarter.redzone {
+            background-color: var(--danger);
+            box-shadow: 0 0 3px rgba(231, 76, 60, 0.6);
+        }
+
+        /* RECORDING INDICATOR */
+        .rec-dot {
+            height: 10px;
+            width: 10px;
+            background-color: #555;
+            border-radius: 50%;
+            display: inline-block;
+            margin-right: 5px;
+        }
+        .rec-active .rec-dot {
+            background-color: red;
+            animation: pulse 1s infinite;
+        }
+        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
+
+        .btn-danger {
+            border-color: var(--danger);
+            color: var(--danger);
+        }
+        .btn-danger:hover {
+            background: var(--danger);
+            color: #fff;
+            box-shadow: 0 0 10px var(--danger);
+        }
+
+        /* Engine Modal Styling */
+        #engine-modal {
+            overflow-y: auto;
+            overflow-x: hidden;
+        }
+
+        /* Styled Blue Scrollbar for Engine Modal */
+        #engine-modal::-webkit-scrollbar {
+            width: 12px;
+        }
+
+        #engine-modal::-webkit-scrollbar-track {
+            background: #0a0a0a;
+            border-left: 1px solid rgba(102, 252, 241, 0.2);
+        }
+
+        #engine-modal::-webkit-scrollbar-thumb {
+            background: linear-gradient(180deg, var(--accent-cyan), var(--accent-dim));
+            border-radius: 6px;
+            border: 2px solid #0a0a0a;
+            box-shadow: 0 0 8px rgba(102, 252, 241, 0.5);
+        }
+
+        #engine-modal::-webkit-scrollbar-thumb:hover {
+            background: linear-gradient(180deg, #66fcf1, #45a29e);
+            box-shadow: 0 0 12px rgba(102, 252, 241, 0.8);
+        }
+
+        #engine-modal::-webkit-scrollbar-thumb:active {
+            background: linear-gradient(180deg, #45a29e, var(--accent-cyan));
+            box-shadow: 0 0 16px rgba(102, 252, 241, 1);
+        }
+
+        /* Firefox scrollbar for modal */
+        #engine-modal {
+            scrollbar-width: thin;
+            scrollbar-color: var(--accent-cyan) #0a0a0a;
+        }
+
+        /* Styled scrollbar for search results dropdown */
+        #engine-modal-search-results::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        #engine-modal-search-results::-webkit-scrollbar-track {
+            background: #0a0a0a;
+        }
+
+        #engine-modal-search-results::-webkit-scrollbar-thumb {
+            background: var(--accent-cyan);
+            border-radius: 4px;
+            box-shadow: 0 0 4px rgba(102, 252, 241, 0.5);
+        }
+
+        #engine-modal-search-results::-webkit-scrollbar-thumb:hover {
+            background: #66fcf1;
+            box-shadow: 0 0 6px rgba(102, 252, 241, 0.8);
+        }
+
+        #engine-modal-search-results {
+            scrollbar-width: thin;
+            scrollbar-color: var(--accent-cyan) #0a0a0a;
+        }
+
+        /* Prevent body scroll when modal is open */
+        body.modal-open {
+            overflow: hidden;
+        }
+    </style>
+  </head>
+  <body>
+    <div class="dashboard-grid">
+        <!-- HEADER -->
+        <div class="header-bar">
+            <h1 style="font-size: 1rem; color: var(--accent-cyan);">Torque.JS: Engine Sound Emulator (Build v3.0.0 alpha)</h1>
+            <div id="status-display" class="status-display">SYSTEM READY // WAITING FOR START</div>
+        </div>
+
+        <!-- LEFT PANEL: CONTROLS -->
+        <div class="panel" id="controls-panel">
+            <div class="panel-header">Engine Controls</div>
+            
+            <div style="padding: 15px; display: flex; flex-direction: column; gap: 15px;">
+                <button id="start_btn" class="btn-tech" style="width: 100%; padding: 12px; font-size: 14px; font-weight: bold;">START ENGINE</button>
+                <button id="stop_btn" class="btn-danger" style="width: 100%; padding: 12px; font-size: 14px; font-weight: bold; display: none;">STOP ENGINE</button>
+                
+                <div id="controls" style="display: block;">
+                    <div class="panel-header" style="margin-top: 10px;">Throttle Control</div>
+                    <div style="display: flex; flex-direction: column; gap: 8px;">
+                        <div style="display: flex; justify-content: space-between; font-size: 11px;">
+                            <span>THROTTLE</span>
+                            <span id="throttle-value" style="color: var(--accent-cyan);">0.0</span>
+                        </div>
+                        <input type="range" id="throttle-slider" min="0" max="1" step="0.01" value="0">
+                    </div>
+
+                    <div class="panel-header" style="margin-top: 15px;">Engine Configuration</div>
+                    <div style="display: flex; flex-direction: column; gap: 8px;">
+                        <button id="select-engine-btn" style="background: linear-gradient(135deg, var(--accent-cyan), var(--accent-dim)); color: #000; border: none; padding: 12px; font-family: inherit; font-weight: bold; cursor: pointer; border-radius: 4px; box-shadow: 0 0 10px rgba(102, 252, 241, 0.3); transition: all 0.3s;">
+                            SELECT ENGINE
+                        </button>
+                        <div id="current-engine-display" style="font-size: 11px; color: var(--accent-cyan); text-align: center; padding: 8px; background: rgba(102, 252, 241, 0.1); border-radius: 4px;">
+                            2.5L Inline-4 (Ford Duratec)
+                        </div>
+                    </div>
+
+                    <div class="panel-header" style="margin-top: 15px;">Keyboard Controls</div>
+                    <div style="font-size: 11px; color: #888; line-height: 1.6;">
+                        <p><strong>W:</strong> Accelerate</p>
+                        <p><strong>S:</strong> Decelerate</p>
+                        <p><strong>↑:</strong> Up Gear</p>
+                        <p><strong>↓:</strong> Down Gear</p>
+                        <p><strong>SPACE:</strong> Brake</p>
+                        <p><strong>I:</strong> Toggle Idle</p>
+                    </div>
+
+                    <div class="panel-header" style="margin-top: 15px;">Advanced Engine Tuning</div>
+                    <div id="advanced-panel" style="display: none; padding: 10px 0;">
+                        <div style="display: flex; flex-direction: column; gap: 10px;">
+                            <div>
+                                <div style="display: flex; justify-content: space-between; font-size: 11px; margin-bottom: 4px;">
+                                    <span>IDLE RPM</span>
+                                    <span id="val-idle" style="color: var(--accent-cyan);">1000</span>
+                                </div>
+                                <input type="range" id="slider-idle" min="500" max="2000" step="50" value="1000">
+                            </div>
+                            <div>
+                                <div style="display: flex; justify-content: space-between; font-size: 11px; margin-bottom: 4px;">
+                                    <span>REV LIMITER</span>
+                                    <span id="val-limiter" style="color: var(--accent-cyan);">9000</span>
+                                </div>
+                                <input type="range" id="slider-limiter" min="6000" max="12000" step="100" value="9000">
+                            </div>
+                            <div>
+                                <div style="display: flex; justify-content: space-between; font-size: 11px; margin-bottom: 4px;">
+                                    <span>SOFT LIMITER</span>
+                                    <span id="val-soft-limiter" style="color: var(--accent-cyan);">8950</span>
+                                </div>
+                                <input type="range" id="slider-soft-limiter" min="5000" max="12000" step="50" value="8950">
+                            </div>
+                            <div>
+                                <div style="display: flex; justify-content: space-between; font-size: 11px; margin-bottom: 4px;">
+                                    <span>INERTIA</span>
+                                    <span id="val-inertia" style="color: var(--accent-cyan);">1.0</span>
+                                </div>
+                                <input type="range" id="slider-inertia" min="0.1" max="2.0" step="0.1" value="1.0">
+                            </div>
+                            <div>
+                                <div style="display: flex; justify-content: space-between; font-size: 11px; margin-bottom: 4px;">
+                                    <span>TORQUE</span>
+                                    <span id="val-torque" style="color: var(--accent-cyan);">400</span>
+                                </div>
+                                <input type="range" id="slider-torque" min="100" max="800" step="10" value="400">
+                            </div>
+                            <div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid #333;">
+                                <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 10px;">
+                                    <input type="checkbox" id="slip-at-redline" checked style="width: 16px; height: 16px; cursor: pointer;">
+                                    <label for="slip-at-redline" style="font-size: 11px; cursor: pointer;">SLIP AT REDLINE</label>
+                                </div>
+                                <div id="slip-start-container" style="display: none;">
+                                    <div style="display: flex; justify-content: space-between; font-size: 11px; margin-bottom: 4px;">
+                                        <span>SLIP START RPM</span>
+                                        <span id="val-slip-start" style="color: var(--accent-cyan);">7650</span>
+                                    </div>
+                                    <input type="range" id="slider-slip-start" min="3000" max="12000" step="50" value="7650">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div style="display: flex; gap: 8px; margin-top: 15px;">
+                        <button id="export-config-btn" class="btn-tech" style="flex: 1; padding: 10px; font-size: 11px;">EXPORT INI</button>
+                        <button id="import-config-btn" class="btn-tech" style="flex: 1; padding: 10px; font-size: 11px;">IMPORT INI</button>
+                    </div>
+                    <input type="file" id="import-config-file" accept=".ini" style="display: none;">
+                    <button id="toggle-advanced" class="btn-tech" style="width: 100%; margin-top: 10px;">SHOW ADVANCED</button>
+
+                    <div class="panel-header" style="margin-top: 15px;">Drivetrain Settings</div>
+                    <div id="drivetrain-panel" style="display: none; padding: 10px 0;">
+                        <div style="display: flex; flex-direction: column; gap: 10px;">
+                            <div>
+                                <div style="display: flex; justify-content: space-between; font-size: 11px; margin-bottom: 4px;">
+                                    <span>SHIFT TIME (ms)</span>
+                                    <span id="val-shift-time" style="color: var(--accent-cyan);">50</span>
+                                </div>
+                                <input type="range" id="slider-shift-time" min="10" max="200" step="10" value="50">
+                            </div>
+                            <div>
+                                <div style="display: flex; justify-content: space-between; font-size: 11px; margin-bottom: 4px;">
+                                    <span>DAMPING</span>
+                                    <span id="val-damping" style="color: var(--accent-cyan);">12</span>
+                                </div>
+                                <input type="range" id="slider-damping" min="1" max="30" step="1" value="12">
+                            </div>
+                            <div>
+                                <div style="display: flex; justify-content: space-between; font-size: 11px; margin-bottom: 4px;">
+                                    <span>COMPLIANCE</span>
+                                    <span id="val-compliance" style="color: var(--accent-cyan);">0.01</span>
+                                </div>
+                                <input type="range" id="slider-compliance" min="0" max="0.1" step="0.01" value="0.01">
+                            </div>
+                        </div>
+                    </div>
+                    <button id="toggle-drivetrain" class="btn-tech" style="width: 100%; margin-top: 10px;">SHOW DRIVETRAIN</button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- BOTTOM LEFT: RECORDING PANEL -->
+        <div class="panel" style="grid-column: 1 / 2; grid-row: 3 / 4;">
+            <div class="panel-header">Export Audio</div>
+            <div style="padding: 15px; display: flex; flex-direction: column; gap: 10px;">
+                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;" id="rec-status">
+                    <span style="font-size: 11px;">STATUS</span>
+                    <div class="rec-dot"></div>
+                </div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+                    <button id="btn-record" class="btn-danger">REC</button>
+                    <button id="btn-stop" class="btn-tech" disabled>STOP & SAVE</button>
+                </div>
+                <p style="font-size: 10px; color: #888; margin-top: 4px; line-height: 1.4;">
+                    Records direct audio stream.<br>
+                    Use quick test rev slider above to set RPM state before recording.
+                </p>
+            </div>
+        </div>
+
+        <!-- CENTER PANEL: VISUALIZER -->
+        <div class="panel" id="visualizer-panel" style="background: #0b0c10; position: relative; overflow: hidden;">
+            <div class="panel-header" style="position: absolute; top: 0; left: 0; width: 100%; z-index: 10; background: rgba(17, 17, 17, 0.7);">Combustion Chamber</div>
+            
+            <!-- Engine Video Visualizer (like Torque - 1:1) -->
+            <div id="gif-container" style="position: absolute; width: 100%; height: 100%; top: 0; left: 0; z-index: 2; opacity: 0.25; transition: opacity 0.3s, filter 0.3s; visibility: visible; overflow: hidden;">
+                <!-- Logo shown when engine is OFF (clear) or ON (blurred behind) -->
+                <img id="engine-logo" 
+                     src="/App_Logo.png" 
+                     style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: fill; object-position: center; display: none; opacity: 0.6; filter: brightness(0.8) contrast(0.9); z-index: 1; transition: opacity 0.3s, filter 0.3s;">
+                <video id="engine-video" 
+                       style="position: absolute; width: 100%; height: 100%; object-fit: cover; object-position: center; filter: brightness(0.2) contrast(0.5) saturate(0.3); display: block; visibility: hidden; transition: filter 0.3s, transform 0.1s; background: transparent;"
+                       muted
+                       loop
+                       playsinline
+                       preload="auto">
+                    Your browser does not support the video tag.
+                </video>
+                <canvas id="engine-video-canvas" style="position: absolute; width: 100%; height: 100%; top: 0; left: 0; display: none; background: transparent; z-index: 2;"></canvas>
+            </div>
+            
+            <!-- Engine Status Text (fallback) -->
+            <div id="engine-status" style="position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%); color: var(--accent-cyan); font-size: 14px; text-transform: uppercase; z-index: 5; text-shadow: 0 0 5px rgba(0,0,0,0.8);">Engine Off</div>
+            
+            <!-- Current Gear Display -->
+            <div id="gear-display" style="position: absolute; top: 50px; right: 20px; color: var(--accent-cyan); font-size: 24px; font-weight: bold; z-index: 5; text-shadow: 0 0 10px rgba(0,0,0,0.9); background: rgba(0,0,0,0.5); padding: 10px 15px; border-radius: 5px; border: 2px solid var(--accent-cyan); display: flex; align-items: center; gap: 8px;">
+                <div style="font-size: 12px; opacity: 0.7;">GEAR</div>
+                <div id="gear-value" style="font-size: 32px;">N</div>
+                <div id="gear-arrow" style="font-size: 20px; color: var(--accent-cyan); opacity: 0.8;">→</div>
+            </div>
+        </div>
+
+        <!-- RIGHT PANEL: GAUGES -->
+        <div class="panel" id="gauges-panel" style="display: flex; flex-direction: column; align-items: center; padding: 10px;">
+            <div class="panel-header" style="width: 100%; text-align: center;">Telemetry</div>
+            
+            <!-- SPEEDOMETER GAUGE -->
+            <div class="meter meter--speed meter--big-label" id="gauge-speed"></div>
+            
+            <!-- RPM GAUGE -->
+            <div class="meter meter--rpm meter--big-label" id="gauge-rpm"></div>
+            
+            <!-- QUICK TEST REV SLIDER (like Torque) -->
+            <div style="width: 100%; padding: 15px; margin-top: 10px;">
+                <div class="panel-header" style="margin-bottom: 10px;">Quick Test Rev</div>
+                <div style="display: flex; flex-direction: column; gap: 8px;">
+                    <div>
+                        <div style="display: flex; justify-content: space-between; font-size: 11px; margin-bottom: 4px;">
+                            <span>RPM START</span>
+                            <span id="val-rpm-start" style="color: var(--accent-cyan);">0</span>
+                        </div>
+                        <input type="range" id="slider-rpm-start" min="0" max="2000" step="100" value="0">
+                    </div>
+                    <div>
+                        <div style="display: flex; justify-content: space-between; font-size: 11px; margin-bottom: 4px;">
+                            <span>RPM END</span>
+                            <span id="val-rpm-end" style="color: var(--accent-cyan);">9000</span>
+                        </div>
+                        <input type="range" id="slider-rpm-end" min="6000" max="12000" step="100" value="9000">
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- BOTTOM PANEL: WAVEFORM -->
+        <div class="panel" id="waveform-panel" style="grid-column: 2 / 4; background: var(--panel-bg) !important;">
+            <div class="panel-header">Audio Waveform</div>
+            <canvas id="waveform-canvas" style="width: 100%; height: 100%; background: var(--panel-bg); cursor: grab; touch-action: none;"></canvas>
+        </div>
+    </div>
+
+    <!-- Engine Selection Modal -->
+    <div id="engine-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.9); z-index: 10000; overflow-y: auto; padding: 20px; box-sizing: border-box;">
+        <div style="max-width: 1200px; max-height: 90vh; margin: 0 auto; background: var(--panel-bg); border: 2px solid var(--accent-cyan); border-radius: 8px; padding: 20px; box-shadow: 0 0 30px rgba(102, 252, 241, 0.5); overflow-y: auto; overflow-x: hidden;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 1px solid var(--accent-cyan); padding-bottom: 15px;">
+                <h2 style="color: var(--accent-cyan); margin: 0; font-size: 1.5rem;">Select Engine</h2>
+                <button id="close-engine-modal" style="background: transparent; border: 1px solid var(--accent-cyan); color: var(--accent-cyan); padding: 8px 16px; cursor: pointer; border-radius: 4px; font-family: inherit; transition: all 0.3s;" onmouseover="this.style.background='var(--accent-cyan)'; this.style.color='#000';" onmouseout="this.style.background='transparent'; this.style.color='var(--accent-cyan)';">✕ Close</button>
+            </div>
+            
+            <!-- Search Input -->
+            <div style="margin-bottom: 20px; position: relative;">
+                <input type="text" id="engine-modal-search" placeholder="Search engines..." style="width: 100%; background: #111; color: var(--text-light); border: 2px solid var(--accent-cyan); padding: 12px; font-family: inherit; font-size: 14px; border-radius: 4px; box-sizing: border-box;">
+                <div id="engine-modal-search-results" style="position: absolute; top: 100%; left: 0; right: 0; background: #111; border: 2px solid var(--accent-cyan); border-top: none; max-height: 250px; overflow-y: auto; z-index: 10001; display: none; border-radius: 0 0 4px 4px; box-shadow: 0 4px 8px rgba(0,0,0,0.5);"></div>
+            </div>
+            
+            <!-- Templates Section -->
+            <div style="margin-bottom: 30px;">
+                <h3 style="color: var(--accent-cyan); margin-bottom: 15px; font-size: 1.1rem; border-left: 3px solid var(--accent-cyan); padding-left: 10px;">Templates</h3>
+                <div id="engine-templates-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 15px;"></div>
+            </div>
+            
+            <!-- Basic Engines Section -->
+            <div style="margin-bottom: 30px;">
+                <h3 style="color: var(--accent-cyan); margin-bottom: 15px; font-size: 1.1rem; border-left: 3px solid var(--accent-cyan); padding-left: 10px;">Basic Engines</h3>
+                <div id="engine-basic-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 15px;"></div>
+            </div>
+            
+            <!-- Custom/Imported Engines Section -->
+            <div id="custom-engines-section" style="display: none;">
+                <h3 style="color: var(--accent-cyan); margin-bottom: 15px; font-size: 1.1rem; border-left: 3px solid var(--accent-cyan); padding-left: 10px;">Custom Configurations</h3>
+                <div id="engine-custom-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 15px;"></div>
+            </div>
+        </div>
+    </div>
+
+    <script type="module" src="./src/main.ts"></script>
+  </body>
+</html>
+<!--
+    End of Torque.JS V3 HTML
+    Maker's Mark: TQJS-V3-HTML-END-2025-IWI
+    © 2025 Iron Will Interactive. All rights reserved.
+-->

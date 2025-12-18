@@ -1,0 +1,2063 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
+    
+    <!-- Primary Meta Tags -->
+    <title>Torque.JS V2 - Classic Engine Sound Emulator | Pure HTML/CSS/JS</title>
+    <meta name="title" content="Torque.JS V2 - Classic Engine Sound Emulator">
+    <meta name="description" content="Torque.JS V2: Classic version - pure HTML, CSS, and JavaScript engine sound simulator. No build process required. Generate realistic V6, V8, V10, and V12 engine sounds in real-time with GIF-based visualizer. Works offline instantly.">
+    <meta name="keywords" content="torque.js v2, engine sound simulator, pure javascript, html css js, engine emulator, V6 V8 V10 V12, car sounds, racing game audio, offline engine simulator, no build process">
+    <meta name="author" content="Iron Will Interactive">
+    <meta name="robots" content="index, follow">
+    <meta name="language" content="English">
+    <meta name="theme-color" content="#66fcf1">
+    <meta name="version" content="2.0.44.1">
+    
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://gamedev44.github.io/Torque/V2/homepage.html">
+    <meta property="og:title" content="Torque.JS V2 - Classic Engine Sound Emulator">
+    <meta property="og:description" content="Pure HTML/CSS/JS engine sound simulator. No build process - works offline instantly. Generate realistic V6, V8, V10, and V12 engine sounds with GIF-based visualizer.">
+    <meta property="og:image" content="https://gamedev44.github.io/Torque/App_Logo.png">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+    <meta property="og:site_name" content="Torque.JS V2">
+    <meta property="og:locale" content="en_US">
+    
+    <!-- Twitter -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:url" content="https://gamedev44.github.io/Torque/V2/homepage.html">
+    <meta name="twitter:title" content="Torque.JS V2 - Classic Engine Sound Emulator">
+    <meta name="twitter:description" content="Pure HTML/CSS/JS engine sound simulator. No build process - works offline instantly.">
+    <meta name="twitter:image" content="https://gamedev44.github.io/Torque/App_Logo.png">
+    <meta name="twitter:creator" content="@IronWillInteractive">
+    
+    <!-- Favicon and App Icons -->
+    <link rel="icon" type="image/png" href="../App_Logo.png">
+    <link rel="shortcut icon" type="image/png" href="../App_Logo.png">
+    <link rel="apple-touch-icon" href="../App_Logo.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="../App_Logo.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="../App_Logo.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="../App_Logo.png">
+    
+    <!-- Canonical URL -->
+    <link rel="canonical" href="https://gamedev44.github.io/Torque/V2/homepage.html">
+    
+    <!-- App Launch Links -->
+    <meta name="app-url" content="https://gamedev44.github.io/Torque/V2/Torque.html">
+    <link rel="alternate" href="https://gamedev44.github.io/Torque/V2/Torque.html" title="Launch Torque.JS V2">
+    
+    <!-- Additional Meta -->
+    <meta name="application-name" content="Torque.JS V2">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Torque.JS">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="msapplication-TileColor" content="#66fcf1">
+    <meta name="msapplication-TileImage" content="App_Logo.png">
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        /* Ensure all elements handle zoom properly */
+        img, video, iframe, canvas {
+            max-width: 100%;
+            height: auto;
+        }
+        
+        /* Prevent horizontal overflow on zoom */
+        section, div, article, aside, main {
+            max-width: 100%;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: linear-gradient(135deg, #0b0c10 0%, #1a1a2e 50%, #0b0c10 100%);
+            min-height: 100vh;
+            font-family: 'Courier New', monospace;
+            color: #c5c6c7;
+            overflow-x: hidden;
+            overflow-y: auto;
+            position: relative;
+            font-size: clamp(0.85rem, 1.2vw, 0.9rem);
+            width: 100%;
+            max-width: 100vw;
+            box-sizing: border-box;
+        }
+        
+        html {
+            overflow-x: hidden;
+            width: 100%;
+            max-width: 100vw;
+        }
+
+        /* Animated Background Grid */
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image: 
+                linear-gradient(rgba(102, 252, 241, 0.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(102, 252, 241, 0.03) 1px, transparent 1px);
+            background-size: 50px 50px;
+            z-index: 0;
+            pointer-events: none;
+        }
+
+        /* Glowing Particles */
+        .particle {
+            position: fixed;
+            width: 2px;
+            height: 2px;
+            background: #66fcf1;
+            border-radius: 50%;
+            box-shadow: 0 0 10px #66fcf1, 0 0 20px #66fcf1;
+            animation: float 8s ease-in-out infinite;
+            z-index: 1;
+        }
+
+        @keyframes float {
+            0%, 100% {
+                transform: translate(0, 0) scale(1);
+                opacity: 0.3;
+            }
+            50% {
+                transform: translate(100px, -100px) scale(1.5);
+                opacity: 0.8;
+            }
+        }
+
+        /* Container */
+        .container {
+            position: relative;
+            z-index: 2;
+            max-width: min(1200px, 100%);
+            width: 100%;
+            margin: 0 auto;
+            padding: clamp(20px, 3vw, 30px) clamp(15px, 2vw, 20px);
+            box-sizing: border-box;
+        }
+
+        /* Header */
+        .header {
+            text-align: center;
+            margin-bottom: 60px;
+            animation: fadeInDown 1s ease-out;
+        }
+
+        .logo {
+            font-size: clamp(2rem, 5vw, 3.5rem);
+            font-weight: bold;
+            color: #66fcf1;
+            text-shadow: 
+                0 0 10px #66fcf1,
+                0 0 20px #66fcf1,
+                0 0 30px #45a29e,
+                0 0 40px #45a29e;
+            letter-spacing: clamp(3px, 0.5vw, 6px);
+            margin-bottom: 10px;
+            text-transform: uppercase;
+        }
+
+        .tagline {
+            font-size: 1.2rem;
+            color: #45a29e;
+            letter-spacing: 4px;
+            margin-bottom: 20px;
+        }
+
+        .version {
+            display: inline-block;
+            padding: 8px 20px;
+            background: rgba(102, 252, 241, 0.1);
+            border: 1px solid #66fcf1;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            color: #66fcf1;
+            letter-spacing: 2px;
+            box-shadow: 0 0 15px rgba(102, 252, 241, 0.3);
+        }
+
+        /* Hero Section */
+        .hero {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: clamp(20px, 4vw, 40px);
+            margin-bottom: clamp(50px, 6vw, 80px);
+            align-items: center;
+            animation: fadeInUp 1s ease-out 0.3s both;
+            width: 100%;
+            max-width: 100%;
+            box-sizing: border-box;
+        }
+
+        .hero-content {
+            padding: clamp(15px, 2.5vw, 20px);
+            width: 100%;
+            max-width: 100%;
+            box-sizing: border-box;
+        }
+
+        .hero-title {
+            font-size: clamp(1.5rem, 3vw, 2.2rem);
+            color: #66fcf1;
+            margin-bottom: 20px;
+            line-height: 1.2;
+            text-shadow: 0 0 20px rgba(102, 252, 241, 0.5);
+        }
+
+        .hero-description {
+            font-size: 1.1rem;
+            line-height: 1.8;
+            color: #c5c6c7;
+            margin-bottom: 30px;
+        }
+
+        .cta-button {
+            display: inline-block;
+            padding: 15px 40px;
+            background: linear-gradient(135deg, #66fcf1 0%, #45a29e 100%);
+            color: #0b0c10;
+            text-decoration: none;
+            font-size: 1.1rem;
+            font-weight: bold;
+            letter-spacing: 2px;
+            border-radius: 5px;
+            transition: all 0.3s ease;
+            box-shadow: 
+                0 0 20px rgba(102, 252, 241, 0.5),
+                0 5px 15px rgba(0, 0, 0, 0.3);
+            text-transform: uppercase;
+        }
+
+        .cta-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 
+                0 0 30px rgba(102, 252, 241, 0.8),
+                0 8px 25px rgba(0, 0, 0, 0.4);
+        }
+
+        .cta-button:active {
+            transform: translateY(0);
+        }
+
+        /* Hide FAQ on V2 homepage to keep content version-focused */
+        .faq-section { display: none !important; }
+
+        /* Video Container */
+        .video-container {
+            position: relative;
+            padding: 20px;
+            background: rgba(31, 40, 51, 0.5);
+            border: 2px solid #66fcf1;
+            border-radius: 10px;
+            box-shadow: 
+                0 0 30px rgba(102, 252, 241, 0.3),
+                inset 0 0 30px rgba(102, 252, 241, 0.1);
+            overflow: hidden;
+        }
+
+        .video-container::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: linear-gradient(
+                45deg,
+                transparent 30%,
+                rgba(102, 252, 241, 0.1) 50%,
+                transparent 70%
+            );
+            animation: shine 3s infinite;
+        }
+
+        @keyframes shine {
+            0% { transform: translateX(-100%) translateY(-100%) rotate(45deg); }
+            100% { transform: translateX(100%) translateY(100%) rotate(45deg); }
+        }
+
+        .video-wrapper {
+            position: relative;
+            width: 100%;
+            padding-bottom: 56.25%; /* 16:9 Aspect Ratio */
+            overflow: hidden;
+            border-radius: 5px;
+        }
+
+        .video-wrapper iframe {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            border: none;
+        }
+
+        /* Latest Improvements Section */
+        .latest-improvements-section {
+            padding: clamp(40px, 5vw, 60px) clamp(15px, 2vw, 20px);
+            margin-bottom: clamp(50px, 6vw, 80px);
+            background: rgba(102, 252, 241, 0.03);
+            border-top: 1px solid rgba(102, 252, 241, 0.2);
+            border-bottom: 1px solid rgba(102, 252, 241, 0.2);
+            animation: fadeInUp 1s ease-out 0.6s both;
+        }
+
+        .latest-improvements-section h2 {
+            text-align: center;
+            color: #66fcf1;
+            margin-bottom: 30px; /* Reduced from 40px */
+            font-size: 2.2em; /* Reduced from 2.5em */
+            text-shadow: 0 0 20px rgba(102, 252, 241, 0.5);
+            cursor: pointer;
+            user-select: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 15px;
+            transition: all 0.3s ease;
+        }
+
+        .latest-improvements-section h2:hover {
+            color: #66fcf1;
+            text-shadow: 0 0 30px rgba(102, 252, 241, 0.8);
+        }
+
+        .toggle-icon {
+            font-size: 0.6em;
+            transition: transform 0.3s ease;
+            display: inline-block;
+        }
+
+        .latest-improvements-section.collapsed .toggle-icon {
+            transform: rotate(-90deg);
+        }
+
+        .latest-improvements-content {
+            max-height: 2000px;
+            overflow: hidden;
+            transition: max-height 0.5s ease, opacity 0.3s ease;
+            opacity: 1;
+        }
+
+        .latest-improvements-section.collapsed .latest-improvements-content {
+            max-height: 0;
+            opacity: 0;
+            margin-bottom: 0;
+        }
+
+        /* Features Grid */
+        .features {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(clamp(200px, 20vw, 250px), 1fr));
+            gap: clamp(20px, 3vw, 30px);
+            margin-bottom: clamp(50px, 6vw, 80px);
+            animation: fadeInUp 1s ease-out 0.6s both;
+            width: 100%;
+            max-width: 100%;
+            box-sizing: border-box;
+        }
+
+        .feature-card {
+            background: rgba(31, 40, 51, 0.6);
+            border: 1px solid rgba(102, 252, 241, 0.3);
+            border-radius: 10px;
+            padding: clamp(20px, 3vw, 30px);
+            text-align: center;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+            width: 100%;
+            max-width: 100%;
+            box-sizing: border-box;
+        }
+
+        .feature-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(
+                90deg,
+                transparent,
+                rgba(102, 252, 241, 0.1),
+                transparent
+            );
+            transition: left 0.5s ease;
+        }
+
+        .feature-card:hover {
+            transform: translateY(-5px);
+            border-color: #66fcf1;
+            box-shadow: 0 0 30px rgba(102, 252, 241, 0.4);
+        }
+
+        .feature-card:hover::before {
+            left: 100%;
+        }
+
+        .feature-icon {
+            font-size: 3rem;
+            margin-bottom: 15px;
+        }
+
+        .feature-title {
+            font-size: 1.3rem;
+            color: #66fcf1;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        .feature-description {
+            color: #c5c6c7;
+            line-height: 1.6;
+        }
+
+        /* Developer & Support Sections */
+        .info-section {
+            margin-bottom: 60px;
+            animation: fadeInUp 1s ease-out 0.9s both;
+        }
+
+        .info-card {
+            background: rgba(31, 40, 51, 0.6);
+            border: 1px solid rgba(102, 252, 241, 0.3);
+            border-radius: 10px;
+            padding: 40px;
+            max-width: 800px;
+            margin: 0 auto;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .info-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, transparent, #66fcf1, transparent);
+            animation: shimmer 3s infinite;
+        }
+
+        @keyframes shimmer {
+            0%, 100% { transform: translateX(-100%); }
+            50% { transform: translateX(100%); }
+        }
+
+        .info-title {
+            font-size: 1.8rem;
+            color: #66fcf1;
+            margin-bottom: 20px;
+            text-align: center;
+            text-transform: uppercase;
+            letter-spacing: 3px;
+            text-shadow: 0 0 15px rgba(102, 252, 241, 0.5);
+        }
+
+        .info-description {
+            color: #c5c6c7;
+            line-height: 1.8;
+            margin-bottom: 25px;
+            text-align: center;
+            font-size: 1.05rem;
+        }
+
+        .info-link {
+            display: inline-block;
+            color: #66fcf1;
+            text-decoration: none;
+            border-bottom: 1px solid #66fcf1;
+            transition: all 0.3s ease;
+            margin: 0 5px;
+        }
+
+        .info-link:hover {
+            color: #45a29e;
+            border-color: #45a29e;
+            text-shadow: 0 0 10px rgba(102, 252, 241, 0.5);
+        }
+
+        /* New Features Modal */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.85);
+            backdrop-filter: blur(5px);
+            z-index: 10000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .modal-overlay.hidden {
+            display: none;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        @keyframes slideUp {
+            from {
+                transform: translateY(50px);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        .modal-content {
+            background: linear-gradient(135deg, #1a1a2e 0%, #0b0c10 100%);
+            border: 2px solid #66fcf1;
+            border-radius: 12px;
+            padding: clamp(25px, 4vw, 40px);
+            max-width: min(700px, 95vw);
+            width: 90%;
+            max-height: 85vh;
+            overflow-y: auto;
+            box-shadow: 0 0 50px rgba(102, 252, 241, 0.5), 0 0 100px rgba(102, 252, 241, 0.3);
+            position: relative;
+            animation: slideUp 0.4s ease;
+        }
+
+        /* Glow Blue Scrollbar for Modal */
+        .modal-content::-webkit-scrollbar {
+            width: 10px;
+        }
+
+        .modal-content::-webkit-scrollbar-track {
+            background: rgba(102, 252, 241, 0.1);
+            border-radius: 5px;
+            box-shadow: inset 0 0 5px rgba(102, 252, 241, 0.1);
+        }
+
+        .modal-content::-webkit-scrollbar-thumb {
+            background: linear-gradient(180deg, rgba(102, 252, 241, 0.6) 0%, rgba(102, 252, 241, 0.8) 100%);
+            border-radius: 5px;
+            box-shadow: 
+                0 0 5px rgba(102, 252, 241, 0.5),
+                0 0 10px rgba(102, 252, 241, 0.3),
+                inset 0 0 3px rgba(102, 252, 241, 0.2);
+            transition: all 0.3s ease;
+        }
+
+        .modal-content::-webkit-scrollbar-thumb:hover {
+            background: linear-gradient(180deg, rgba(102, 252, 241, 0.8) 0%, rgba(102, 252, 241, 1) 100%);
+            box-shadow: 
+                0 0 8px rgba(102, 252, 241, 0.8),
+                0 0 15px rgba(102, 252, 241, 0.5),
+                inset 0 0 5px rgba(102, 252, 241, 0.3);
+        }
+
+        /* Firefox scrollbar styling */
+        .modal-content {
+            scrollbar-width: thin;
+            scrollbar-color: rgba(102, 252, 241, 0.7) rgba(102, 252, 241, 0.1);
+        }
+
+        .modal-close {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            background: transparent;
+            border: 2px solid #66fcf1;
+            color: #66fcf1;
+            width: 35px;
+            height: 35px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s;
+            font-family: 'Courier New', monospace;
+        }
+
+        .modal-close:hover {
+            background: #66fcf1;
+            color: #0b0c10;
+            box-shadow: 0 0 15px rgba(102, 252, 241, 0.8);
+            transform: rotate(90deg);
+        }
+
+        .modal-header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .modal-header h2 {
+            color: #66fcf1;
+            font-size: 2.2em;
+            margin-bottom: 10px;
+            text-shadow: 0 0 20px rgba(102, 252, 241, 0.5);
+        }
+
+        .modal-header p {
+            color: #c5c6c7;
+            font-size: 1.1em;
+        }
+
+        .modal-features {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 20px;
+            margin-top: 25px;
+        }
+
+        .modal-feature-item {
+            background: rgba(102, 252, 241, 0.05);
+            border: 1px solid rgba(102, 252, 241, 0.2);
+            border-radius: 8px;
+            padding: 20px;
+            transition: all 0.3s;
+        }
+
+        .modal-feature-item:hover {
+            background: rgba(102, 252, 241, 0.1);
+            border-color: rgba(102, 252, 241, 0.4);
+            transform: translateX(5px);
+        }
+
+        .modal-feature-item h3 {
+            color: #66fcf1;
+            font-size: 1.3em;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .modal-feature-item p {
+            color: #c5c6c7;
+            line-height: 1.6;
+            margin: 0;
+        }
+
+        .modal-feature-icon {
+            font-size: 1.5em;
+        }
+
+        /* GitHub Commits Section */
+        .modal-commits {
+            margin-top: 40px;
+            padding-top: 30px;
+            border-top: 2px solid rgba(102, 252, 241, 0.3);
+        }
+
+        .modal-commits h3 {
+            color: #66fcf1;
+            font-size: 1.5em;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .commits-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            max-height: 300px;
+            overflow-y: auto;
+            padding-right: 5px;
+        }
+
+        .commits-list::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .commits-list::-webkit-scrollbar-track {
+            background: rgba(102, 252, 241, 0.1);
+            border-radius: 4px;
+            box-shadow: inset 0 0 3px rgba(102, 252, 241, 0.1);
+        }
+
+        .commits-list::-webkit-scrollbar-thumb {
+            background: linear-gradient(180deg, rgba(102, 252, 241, 0.6) 0%, rgba(102, 252, 241, 0.8) 100%);
+            border-radius: 4px;
+            box-shadow: 
+                0 0 4px rgba(102, 252, 241, 0.5),
+                0 0 8px rgba(102, 252, 241, 0.3),
+                inset 0 0 2px rgba(102, 252, 241, 0.2);
+            transition: all 0.3s ease;
+        }
+
+        .commits-list::-webkit-scrollbar-thumb:hover {
+            background: linear-gradient(180deg, rgba(102, 252, 241, 0.8) 0%, rgba(102, 252, 241, 1) 100%);
+            box-shadow: 
+                0 0 6px rgba(102, 252, 241, 0.8),
+                0 0 12px rgba(102, 252, 241, 0.5),
+                inset 0 0 4px rgba(102, 252, 241, 0.3);
+        }
+
+        /* Firefox scrollbar for commits list */
+        .commits-list {
+            scrollbar-width: thin;
+            scrollbar-color: rgba(102, 252, 241, 0.7) rgba(102, 252, 241, 0.1);
+        }
+
+        /* Don't Show Again Checkbox */
+        .modal-dont-show {
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid rgba(102, 252, 241, 0.2);
+            text-align: center;
+        }
+
+        .dont-show-checkbox {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            cursor: pointer;
+            color: #c5c6c7;
+            font-size: 0.95em;
+            transition: color 0.3s;
+        }
+
+        .dont-show-checkbox:hover {
+            color: #66fcf1;
+        }
+
+        .dont-show-checkbox input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+            accent-color: #66fcf1;
+            border: 2px solid rgba(102, 252, 241, 0.5);
+            border-radius: 3px;
+        }
+
+        .dont-show-checkbox input[type="checkbox"]:checked {
+            background-color: #66fcf1;
+            border-color: #66fcf1;
+        }
+
+        /* Show Updates Toggle Button */
+        .show-updates-btn {
+            background: rgba(102, 252, 241, 0.1);
+            border: 1px solid rgba(102, 252, 241, 0.3);
+            color: #66fcf1;
+            padding: 8px 16px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 0.9em;
+            font-family: 'Courier New', monospace;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-block;
+        }
+
+        .show-updates-btn:hover {
+            background: rgba(102, 252, 241, 0.2);
+            border-color: #66fcf1;
+            box-shadow: 0 0 10px rgba(102, 252, 241, 0.4);
+            transform: translateY(-2px);
+        }
+
+        .commit-item {
+            background: rgba(102, 252, 241, 0.05);
+            border: 1px solid rgba(102, 252, 241, 0.2);
+            border-radius: 6px;
+            padding: 12px 15px;
+            transition: all 0.3s;
+        }
+
+        .commit-item:hover {
+            background: rgba(102, 252, 241, 0.1);
+            border-color: rgba(102, 252, 241, 0.4);
+            transform: translateX(3px);
+        }
+
+        .commit-message {
+            color: #c5c6c7;
+            font-size: 0.95em;
+            margin-bottom: 6px;
+            line-height: 1.4;
+        }
+
+        .commit-meta {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            font-size: 0.85em;
+            color: #45a29e;
+        }
+
+        .commit-author {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .commit-date {
+            color: #45a29e;
+        }
+
+        .commit-link {
+            color: #66fcf1;
+            text-decoration: none;
+            margin-left: auto;
+            font-size: 0.9em;
+            transition: all 0.3s;
+        }
+
+        .commit-link:hover {
+            color: #66fcf1;
+            text-shadow: 0 0 10px rgba(102, 252, 241, 0.8);
+        }
+
+        .commits-loading {
+            text-align: center;
+            color: #45a29e;
+            padding: 20px;
+            font-style: italic;
+        }
+
+        .commits-error {
+            text-align: center;
+            color: #e74c3c;
+            padding: 20px;
+        }
+
+        .donate-button {
+            display: inline-block;
+            text-decoration: none;
+            transition: all 0.3s ease;
+            margin-top: 10px;
+            border: none;
+            background: none;
+            padding: 0;
+        }
+
+        .donate-button img {
+            height: auto;
+            width: auto;
+            max-width: 200px;
+            display: block;
+            transition: all 0.3s ease;
+            filter: drop-shadow(0 0 10px rgba(102, 252, 241, 0.3));
+        }
+
+        .donate-button:hover img {
+            transform: translateY(-2px) scale(1.05);
+            filter: drop-shadow(0 0 20px rgba(102, 252, 241, 0.6));
+        }
+
+        .divider {
+            height: 1px;
+            background: linear-gradient(90deg, transparent, rgba(102, 252, 241, 0.3), transparent);
+            margin: 40px 0;
+        }
+
+        /* Version Selection Section */
+        .version-selection-section {
+            margin-bottom: 60px;
+            animation: fadeInUp 1s ease-out 0.45s both;
+        }
+
+        .version-selection-card {
+            background: rgba(31, 40, 51, 0.8);
+            border: 2px solid rgba(102, 252, 241, 0.3);
+            border-radius: 15px;
+            padding: clamp(30px, 4vw, 50px) clamp(20px, 3vw, 40px);
+            max-width: min(1000px, 90vw);
+            margin: 0 auto;
+            text-align: center;
+        }
+
+        .version-selection-title {
+            font-size: clamp(1.6rem, 3vw, 2.2rem);
+            color: #66fcf1;
+            margin-bottom: 40px;
+            text-transform: uppercase;
+            letter-spacing: 3px;
+            text-shadow: 0 0 20px rgba(102, 252, 241, 0.5);
+        }
+
+        .version-cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 30px;
+            margin-top: 30px;
+        }
+
+        .version-card {
+            background: rgba(11, 12, 16, 0.6);
+            border: 2px solid rgba(102, 252, 241, 0.3);
+            border-radius: 12px;
+            padding: 30px;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .version-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(102, 252, 241, 0.1), transparent);
+            transition: left 0.5s ease;
+        }
+
+        .version-card:hover {
+            transform: translateY(-5px);
+            border-color: #66fcf1;
+            box-shadow: 0 0 30px rgba(102, 252, 241, 0.4);
+        }
+
+        .version-card:hover::before {
+            left: 100%;
+        }
+
+        .version-card h3 {
+            font-size: 1.8rem;
+            color: #66fcf1;
+            margin-bottom: 15px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        .version-card p {
+            color: #c5c6c7;
+            line-height: 1.6;
+            margin-bottom: 20px;
+            font-size: 1rem;
+        }
+
+        .version-card .version-features {
+            list-style: none;
+            padding: 0;
+            margin: 20px 0;
+            text-align: left;
+        }
+
+        .version-card .version-features li {
+            color: #45a29e;
+            padding: 8px 0;
+            padding-left: 25px;
+            position: relative;
+        }
+
+        .version-card .version-features li::before {
+            content: '✓';
+            position: absolute;
+            left: 0;
+            color: #66fcf1;
+            font-weight: bold;
+        }
+
+        .version-card .version-link {
+            display: inline-block;
+            padding: 12px 30px;
+            background: linear-gradient(135deg, #66fcf1 0%, #45a29e 100%);
+            color: #0b0c10;
+            text-decoration: none;
+            font-weight: bold;
+            border-radius: 5px;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-top: 10px;
+        }
+
+        .version-card .version-link:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(102, 252, 241, 0.5);
+        }
+
+        /* Clarification Section */
+        .clarification-section {
+            margin-bottom: 60px;
+            animation: fadeInUp 1s ease-out 0.3s both;
+        }
+
+        .clarification-card {
+            background: rgba(231, 76, 60, 0.1);
+            border: 2px solid rgba(231, 76, 60, 0.4);
+            border-radius: 15px;
+            padding: clamp(30px, 4vw, 50px) clamp(25px, 3vw, 40px);
+            max-width: min(1000px, 90vw);
+            margin: 0 auto;
+            position: relative;
+        }
+
+        .clarification-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, transparent, rgba(231, 76, 60, 0.6), transparent);
+            animation: shimmer 3s infinite;
+        }
+
+        .clarification-title {
+            font-size: clamp(1.4rem, 2.5vw, 1.8rem);
+            color: #e74c3c;
+            margin-bottom: 25px;
+            text-align: center;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            text-shadow: 0 0 15px rgba(231, 76, 60, 0.5);
+        }
+
+        .clarification-text {
+            color: #c5c6c7;
+            line-height: 1.8;
+            margin-bottom: 20px;
+            font-size: 1.05rem;
+        }
+
+        .clarification-text strong {
+            color: #66fcf1;
+        }
+
+        /* Comparison Section */
+        .comparison-section {
+            margin-bottom: 60px;
+            animation: fadeInUp 1s ease-out 0.75s both;
+        }
+
+        .comparison-card {
+            background: rgba(31, 40, 51, 0.8);
+            border: 2px solid rgba(102, 252, 241, 0.3);
+            border-radius: 15px;
+            padding: clamp(25px, 4vw, 40px) clamp(20px, 3vw, 30px);
+            max-width: min(900px, 85vw);
+            margin: 0 auto;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .comparison-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(
+                135deg,
+                rgba(102, 252, 241, 0.05) 0%,
+                transparent 50%,
+                rgba(102, 252, 241, 0.05) 100%
+            );
+            pointer-events: none;
+        }
+
+        .comparison-title {
+            font-size: clamp(1.4rem, 2.5vw, 2rem);
+            color: #66fcf1;
+            text-align: center;
+            margin-bottom: 30px;
+            text-transform: uppercase;
+            letter-spacing: 3px;
+            text-shadow: 0 0 20px rgba(102, 252, 241, 0.5);
+            position: relative;
+            z-index: 1;
+        }
+
+        .comparison-item {
+            display: grid;
+            grid-template-columns: 1fr auto 1fr;
+            gap: clamp(15px, 2.5vw, 30px);
+            align-items: center;
+            margin-bottom: clamp(20px, 3vw, 30px);
+            padding: clamp(15px, 2.5vw, 25px);
+            background: rgba(11, 12, 16, 0.5);
+            border-radius: 10px;
+            border: 1px solid rgba(102, 252, 241, 0.2);
+            position: relative;
+            z-index: 1;
+            opacity: 0;
+            animation: fadeInSlide 0.8s ease-out forwards;
+            width: 100%;
+            max-width: 100%;
+            box-sizing: border-box;
+        }
+
+        .comparison-item:nth-child(1) { animation-delay: 0.1s; }
+        .comparison-item:nth-child(2) { animation-delay: 0.3s; }
+        .comparison-item:nth-child(3) { animation-delay: 0.5s; }
+        .comparison-item:nth-child(4) { animation-delay: 0.7s; }
+        .comparison-item:nth-child(5) { animation-delay: 0.9s; }
+
+        @keyframes fadeInSlide {
+            from {
+                opacity: 0;
+                transform: translateX(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        .comparison-side {
+            text-align: center;
+        }
+
+        .comparison-label {
+            font-size: 0.9rem;
+            color: #45a29e;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            margin-bottom: 10px;
+            font-weight: bold;
+        }
+
+        .comparison-text {
+            font-size: 1.1rem;
+            color: #c5c6c7;
+            line-height: 1.6;
+        }
+
+        .comparison-text.torque {
+            color: #66fcf1;
+            font-weight: 600;
+        }
+
+        .comparison-text.engine-sim {
+            color: #c5c6c7;
+        }
+
+        .vs-divider {
+            font-size: 1.5rem;
+            color: #66fcf1;
+            font-weight: bold;
+            text-shadow: 0 0 15px rgba(102, 252, 241, 0.5);
+            padding: 0 20px;
+        }
+
+        /* FAQ Section */
+        .faq-section {
+            margin-bottom: 60px;
+            animation: fadeInUp 1s ease-out 1.05s both;
+        }
+
+        .faq-card {
+            background: rgba(31, 40, 51, 0.6);
+            border: 1px solid rgba(102, 252, 241, 0.3);
+            border-radius: 10px;
+            padding: clamp(25px, 4vw, 40px);
+            max-width: min(900px, 90vw);
+            margin: 0 auto;
+        }
+
+        .faq-title {
+            font-size: 1.8rem;
+            color: #66fcf1;
+            margin-bottom: 30px;
+            text-align: center;
+            text-transform: uppercase;
+            letter-spacing: 3px;
+            cursor: pointer;
+            user-select: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 15px;
+            transition: all 0.3s ease;
+        }
+
+        .faq-title:hover {
+            color: #66fcf1;
+            text-shadow: 0 0 20px rgba(102, 252, 241, 0.8);
+        }
+
+        .faq-section.collapsed .faq-content {
+            max-height: 0;
+            opacity: 0;
+            overflow: hidden;
+            transition: max-height 0.5s ease, opacity 0.3s ease;
+        }
+
+        .faq-content {
+            max-height: 3000px;
+            opacity: 1;
+            transition: max-height 0.5s ease, opacity 0.3s ease;
+        }
+
+        .faq-toggle-icon {
+            font-size: 0.5em;
+            transition: transform 0.3s ease;
+            display: inline-block;
+        }
+
+        .faq-section.collapsed .faq-toggle-icon {
+            transform: rotate(-90deg);
+        }
+
+        .faq-link-button {
+            display: inline-block;
+            margin-top: 30px;
+            padding: 12px 24px;
+            background: rgba(102, 252, 241, 0.1);
+            border: 1px solid rgba(102, 252, 241, 0.3);
+            color: #66fcf1;
+            text-decoration: none;
+            border-radius: 5px;
+            font-size: 0.95em;
+            font-family: 'Courier New', monospace;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        .faq-link-button:hover {
+            background: rgba(102, 252, 241, 0.2);
+            border-color: #66fcf1;
+            box-shadow: 0 0 15px rgba(102, 252, 241, 0.4);
+            transform: translateY(-2px);
+        }
+
+        .faq-item {
+            margin-bottom: clamp(15px, 2.5vw, 25px);
+            padding: clamp(15px, 2.5vw, 20px);
+            background: rgba(11, 12, 16, 0.4);
+            border-radius: 8px;
+            border-left: 3px solid #66fcf1;
+            width: 100%;
+            max-width: 100%;
+            box-sizing: border-box;
+        }
+
+        .faq-question {
+            font-size: 1.2rem;
+            color: #66fcf1;
+            margin-bottom: 10px;
+            font-weight: bold;
+        }
+
+        .faq-answer {
+            color: #c5c6c7;
+            line-height: 1.8;
+        }
+
+        /* Footer */
+        .footer {
+            text-align: center;
+            padding: 40px 20px;
+            border-top: 1px solid rgba(102, 252, 241, 0.2);
+            margin-top: 60px;
+            animation: fadeInUp 1s ease-out 1.2s both;
+        }
+
+        .footer-links {
+            display: flex;
+            justify-content: center;
+            gap: 30px;
+            flex-wrap: wrap;
+            margin-bottom: 20px;
+        }
+
+        .footer-link {
+            color: #66fcf1;
+            text-decoration: none;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+
+        .footer-link::after {
+            content: '';
+            position: absolute;
+            bottom: -3px;
+            left: 0;
+            width: 0;
+            height: 1px;
+            background: #66fcf1;
+            transition: width 0.3s ease;
+        }
+
+        .footer-link:hover::after {
+            width: 100%;
+        }
+
+        .footer-link:hover {
+            text-shadow: 0 0 10px #66fcf1;
+        }
+
+        .copyright {
+            color: #45a29e;
+            font-size: 0.9rem;
+            margin-top: 20px;
+        }
+
+        /* Animations */
+        @keyframes fadeInDown {
+            from {
+                opacity: 0;
+                transform: translateY(-30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* Responsive */
+        /* Standard HD Screens (1366px - 1919px) */
+        @media (max-width: 1919px) {
+            .container { 
+                max-width: 1000px; 
+                padding: 25px 20px; 
+            }
+            .logo { 
+                font-size: 3rem; 
+                letter-spacing: 5px; 
+            }
+            .hero-title { 
+                font-size: 2rem; 
+            }
+            .comparison-title { 
+                font-size: 1.8rem; 
+            }
+            .latest-improvements-section h2 { 
+                font-size: 2em; 
+            }
+            .comparison-card { 
+                padding: 35px 25px; 
+                max-width: 850px; 
+            }
+        }
+
+        /* Tablet Landscape (1024px - 1365px) */
+        @media (max-width: 1365px) {
+            .container { 
+                max-width: 95%; 
+                padding: 20px 15px; 
+            }
+            .logo { 
+                font-size: 2.8rem; 
+                letter-spacing: 4px; 
+            }
+            .hero-title { 
+                font-size: 1.8rem; 
+            }
+            .hero { 
+                gap: 30px; 
+                margin-bottom: 60px; 
+            }
+            .header { 
+                margin-bottom: 40px; 
+            }
+            .latest-improvements-section { 
+                padding: 40px 15px; 
+                margin-bottom: 60px; 
+            }
+            .comparison-card { 
+                padding: 30px 20px; 
+                max-width: 95%; 
+            }
+            .faq-card { 
+                padding: 30px 20px; 
+                max-width: 95%; 
+            }
+            .modal-content { 
+                max-width: 90%; 
+                padding: 30px; 
+            }
+            .video-container { 
+                padding: 15px; 
+            }
+        }
+
+        /* Tablet Portrait (768px - 1023px) - Update existing 968px breakpoint */
+        @media (max-width: 968px) {
+            .container { 
+                padding: 20px 15px; 
+            }
+            .logo { 
+                font-size: 2.5rem; 
+                letter-spacing: 4px; 
+            }
+            .hero-title { 
+                font-size: 1.6rem; 
+            }
+            .hero { 
+                grid-template-columns: 1fr;
+                gap: 25px; 
+                margin-bottom: 50px; 
+            }
+            .header { 
+                margin-bottom: 35px; 
+            }
+            .latest-improvements-section { 
+                padding: 35px 15px; 
+                margin-bottom: 50px; 
+            }
+            .latest-improvements-section h2 { 
+                font-size: 1.8em; 
+            }
+            .comparison-title { 
+                font-size: 1.6rem; 
+            }
+            .comparison-card { 
+                padding: 25px 15px; 
+            }
+            .faq-title { 
+                font-size: 1.5rem; 
+            }
+            .feature-card { 
+                padding: 25px; 
+            }
+            .features {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Mobile (600px and below) */
+        @media (max-width: 600px) {
+            .logo {
+                font-size: 2rem;
+                letter-spacing: 4px;
+            }
+
+            .hero-title {
+                font-size: 1.5rem;
+            }
+
+            .cta-button {
+                padding: 12px 30px;
+                font-size: 1rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Background Particles -->
+    <div class="particle" style="top: 10%; left: 10%; animation-delay: 0s;"></div>
+    <div class="particle" style="top: 20%; right: 15%; animation-delay: 1s;"></div>
+    <div class="particle" style="bottom: 15%; left: 20%; animation-delay: 2s;"></div>
+    <div class="particle" style="bottom: 25%; right: 10%; animation-delay: 3s;"></div>
+    <div class="particle" style="top: 50%; left: 5%; animation-delay: 4s;"></div>
+    <div class="particle" style="top: 60%; right: 5%; animation-delay: 5s;"></div>
+
+    <!-- New Features Modal -->
+    <div id="newFeaturesModal" class="modal-overlay">
+        <div class="modal-content">
+            <button class="modal-close" id="closeModal" aria-label="Close modal">×</button>
+            <div class="modal-header">
+                <h2>🚀 What's New in Torque.JS V2</h2>
+                <p>Latest improvements and features for the classic version</p>
+            </div>
+            <div class="modal-features">
+                <div class="modal-feature-item">
+                    <h3>
+                        <span class="modal-feature-icon">⚡</span>
+                        Advanced Slip System
+                    </h3>
+                    <p>Realistic speed and RPM slip mechanics with automatic recovery. Experience authentic rev limiter behavior with speed needle oscillation and exhaust choke-back effects that cool the engine during slip phases.</p>
+                </div>
+                <div class="modal-feature-item">
+                    <h3>
+                        <span class="modal-feature-icon">🌡️</span>
+                        Heat & Temperature System
+                    </h3>
+                    <p>Real-time temperature monitoring with overheating protection. Watch your engine heat up during heavy throttle and cool down naturally. Optional engine failure mode for extreme realism.</p>
+                </div>
+                <div class="modal-feature-item">
+                    <h3>
+                        <span class="modal-feature-icon">🎚️</span>
+                        Improved Audio Quality
+                    </h3>
+                    <p>Enhanced sound synthesis with better limiter kickback effects and refined audio processing. More realistic engine sounds with improved frequency response and choke-back mechanics.</p>
+                </div>
+                <div class="modal-feature-item">
+                    <h3>
+                        <span class="modal-feature-icon">📊</span>
+                        Enhanced Telemetry
+                    </h3>
+                    <p>New temperature gauge, direction indicator, and improved visual feedback. Better monitoring of engine state with real-time temperature display in Fahrenheit and comprehensive slip visualization.</p>
+                </div>
+                <div class="modal-feature-item">
+                    <h3>
+                        <span class="modal-feature-icon">🎨</span>
+                        Classic GIF Visualizer
+                    </h3>
+                    <p>Pure HTML/CSS/JS implementation with GIF-based engine visualizer. No build process required - works instantly offline in any modern browser.</p>
+                </div>
+            </div>
+            
+            <!-- Recent Commits (V2 folder only) -->
+            <div class="modal-commits">
+                <h3>Recent Commits</h3>
+                <div id="commits-list" class="commits-list">
+                    <div class="commits-loading">Loading recent commits…</div>
+                </div>
+            </div>
+            
+            <!-- Don't Show Again Checkbox -->
+            <div class="modal-dont-show">
+                <label class="dont-show-checkbox">
+                    <input type="checkbox" id="dontShowAgain">
+                    <span>Don't show this again</span>
+                </label>
+            </div>
+        </div>
+    </div>
+
+    <div class="container">
+        <!-- Header -->
+        <header class="header">
+            <h1 class="logo">Torque.JS V2</h1>
+            <p class="tagline">Classic Engine Sound Emulator</p>
+            <span class="version">Build v2.0.44.1 (alpha)</span>
+            <div style="margin-top: 15px;">
+                <button class="show-updates-btn" id="showUpdatesBtn" style="display: none;">📢 Show Updates</button>
+            </div>
+        </header>
+
+        <!-- Hero Section -->
+        <section class="hero">
+            <div class="hero-content">
+                <h2 class="hero-title">Torque.JS V2: Classic Engine Sound Emulator</h2>
+                <p class="hero-description">
+                    The classic version of Torque.JS - pure HTML, CSS, and JavaScript. No build process required, 
+                    no dependencies needed. Generate realistic V6, V8, V10, and V12 engine sounds in real-time 
+                    using pure tone synthesis. Works offline instantly in any modern browser.
+                </p>
+                <div style="display: flex; gap: 15px; flex-wrap: wrap; justify-content: center;">
+                    <a href="Torque.html" class="cta-button">
+                        Launch V2 →
+                    </a>
+                    <a href="../website/homepage.html" class="cta-button" style="background: rgba(102, 252, 241, 0.1); border: 1px solid #66fcf1; color: #66fcf1;">
+                        ← Back to Main
+                    </a>
+                </div>
+            </div>
+            <div class="video-container">
+                <div class="video-wrapper">
+                    <iframe 
+                        width="560" 
+                        height="315" 
+                        src="https://www.youtube-nocookie.com/embed/62KrYP5BTLM?si=iehjCaog8BowARPl&amp;controls=0&amp;start=4" 
+                        title="YouTube video player" 
+                        frameborder="0" 
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" 
+                        referrerpolicy="strict-origin-when-cross-origin" 
+                        allowfullscreen>
+                    </iframe>
+                </div>
+            </div>
+        </section>
+
+        <!-- Important Clarification & Apology Section -->
+        <section class="clarification-section">
+            <div class="clarification-card">
+                <h2 class="clarification-title">Important Clarification & Apology</h2>
+                <p class="clarification-text">
+                    I would like to formally apologize to <strong>Hat of Ange the Great</strong>, <strong>e_soup</strong>, <strong>ssenmodelux</strong>, 
+                    and anyone else I may have offended. There is no excuse for my actions, and I am deeply sorry. However true my claims were, 
+                    they were unjust to call out as it isn't my place to do so, and I would like to be more professional than that.
+                </p>
+                <p class="clarification-text">
+                    <strong>Clarification:</strong> Despite claims to the contrary, Engine Sim Open Source VERSION clearly uses samples from the old Engine Simulator 
+                    open source edition. You can see the sound files here: 
+                    <a href="https://github.com/ange-yaghi/engine-sim/tree/master/assets/sound-library" 
+                       target="_blank" class="info-link" style="color: #66fcf1; text-decoration: underline;">
+                        Engine Simulator Sound Library
+                    </a>
+                </p>
+                <p class="clarification-text">
+                    All comparisons on this site refer to the <strong>old Engine Simulator open source edition</strong> available on GitHub 
+                    (<a href="https://github.com/ange-yaghi/engine-sim" target="_blank" class="info-link" style="color: #66fcf1; text-decoration: underline;">
+                        https://github.com/ange-yaghi/engine-sim
+                    </a>), 
+                    <strong>NOT</strong> the Community Edition or the new upcoming 3D version. My points were and remain fully valid regarding that version.
+                </p>
+            </div>
+        </section>
+
+        <div class="divider"></div>
+
+
+        <!-- Latest Improvements -->
+        <section class="latest-improvements-section collapsed" id="latestImprovementsSection">
+            <div class="container">
+                <h2 onclick="toggleLatestImprovements()">
+                    <span class="toggle-icon">▶</span>
+                    🚀 Latest Improvements & New Features
+                </h2>
+                <div class="latest-improvements-content">
+                    <div class="features" style="max-width: 1000px; margin: 0 auto;">
+                    <div class="feature-card">
+                        <div class="feature-icon">⚡</div>
+                        <h3>Advanced Slip System</h3>
+                        <p>Realistic speed and RPM slip mechanics with automatic recovery. Experience authentic rev limiter behavior with speed needle oscillation and exhaust choke-back effects.</p>
+                    </div>
+                    <div class="feature-card">
+                        <div class="feature-icon">🌡️</div>
+                        <h3>Heat & Temperature System</h3>
+                        <p>Real-time temperature monitoring with overheating protection. Watch your engine heat up during heavy throttle and cool down naturally. Optional engine failure mode for extreme realism.</p>
+                    </div>
+                    <div class="feature-card">
+                        <div class="feature-icon">🎚️</div>
+                        <h3>Improved Audio Quality</h3>
+                        <p>Enhanced sound synthesis with better limiter kickback effects and refined audio processing. More realistic engine sounds with improved frequency response.</p>
+                    </div>
+                    <div class="feature-card">
+                        <div class="feature-icon">📊</div>
+                        <h3>Enhanced Telemetry</h3>
+                        <p>New temperature gauge, direction indicator, and improved visual feedback. Better monitoring of engine state with real-time temperature display in Fahrenheit.</p>
+                    </div>
+                    <div class="feature-card">
+                        <div class="feature-icon">🔧</div>
+                        <h3>Multiple Engine Types</h3>
+                        <p>Support for V6, V8, V10, and V12 engine configurations with authentic harmonic intervals. Each engine type uses mathematically accurate frequency relationships for realistic sound characteristics.</p>
+                    </div>
+                    <div class="feature-card">
+                        <div class="feature-icon">🎛️</div>
+                        <h3>Pre-Ignition Controls & State Persistence</h3>
+                        <p>Full control over volume, mute, and other settings before starting the engine. All states persist across sessions, including volume slider position and mute status. Settings are immediately available and respected from page load.</p>
+                    </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Features -->
+        <section class="features">
+            <div class="feature-card">
+                <div class="feature-icon">⚡</div>
+                <h3 class="feature-title">Lightweight</h3>
+                <p class="feature-description">
+                    Single HTML file, zero dependencies. Runs in any modern browser instantly.
+                </p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">🎵</div>
+                <h3 class="feature-title">Real-time Synthesis</h3>
+                <p class="feature-description">
+                    Pure tone generation using advanced oscillators. No audio samples needed.
+                </p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">🎛️</div>
+                <h3 class="feature-title">Highly Customizable</h3>
+                <p class="feature-description">
+                    Extensive tuning parameters with preset support for multiple engine types.
+                </p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">🚀</div>
+                <h3 class="feature-title">Production Ready</h3>
+                <p class="feature-description">
+                    Built as a usable product, not just a prototype. Usability first, always.
+                </p>
+            </div>
+        </section>
+
+        <!-- Comparison Section -->
+        <section class="comparison-section">
+            <div class="comparison-card">
+                <h2 class="comparison-title">⚡ What Makes Torque.JS V2 Different?</h2>
+                <p style="text-align: center; color: #45a29e; margin-bottom: 30px; font-size: 0.95rem; font-style: italic; padding: 15px; background: rgba(102, 252, 241, 0.05); border-radius: 8px; border: 1px solid rgba(102, 252, 241, 0.2);">
+                    <strong>Note:</strong> All comparisons below refer to the original <strong>Engine Simulator open source edition</strong> 
+                    available on GitHub (<a href="https://github.com/ange-yaghi/engine-sim" target="_blank" style="color: #66fcf1; text-decoration: underline;">https://github.com/ange-yaghi/engine-sim</a>), 
+                    <strong>not</strong> the Community Edition or upcoming 3D version.
+                </p>
+                
+                <div class="comparison-item">
+                    <div class="comparison-side">
+                        <div class="comparison-label">Engine Simulator (Open Source)</div>
+                        <div class="comparison-text engine-sim">Uses Sound Files</div>
+                    </div>
+                    <div class="vs-divider">VS</div>
+                    <div class="comparison-side">
+                        <div class="comparison-label">Torque.JS V2</div>
+                        <div class="comparison-text torque">Pure Tone Generation</div>
+                    </div>
+                </div>
+
+                <div class="comparison-item">
+                    <div class="comparison-side">
+                        <div class="comparison-label">Engine Simulator (Open Source)</div>
+                        <div class="comparison-text engine-sim">Requires Complex Audio Understanding</div>
+                    </div>
+                    <div class="vs-divider">VS</div>
+                    <div class="comparison-side">
+                        <div class="comparison-label">Torque.JS V2</div>
+                        <div class="comparison-text torque">Effortless Creation & Fast Setup</div>
+                    </div>
+                </div>
+
+                <div class="comparison-item">
+                    <div class="comparison-side">
+                        <div class="comparison-label">Engine Simulator (Open Source)</div>
+                        <div class="comparison-text engine-sim">Extremely Robust</div>
+                    </div>
+                    <div class="vs-divider">VS</div>
+                    <div class="comparison-side">
+                        <div class="comparison-label">Torque.JS V2</div>
+                        <div class="comparison-text torque">Getting There, Promising for Ease of Use</div>
+                    </div>
+                </div>
+
+                <div class="comparison-item">
+                    <div class="comparison-side">
+                        <div class="comparison-label">Engine Simulator (Open Source)</div>
+                        <div class="comparison-text engine-sim">Limited Customization & Control</div>
+                    </div>
+                    <div class="vs-divider">VS</div>
+                    <div class="comparison-side">
+                        <div class="comparison-label">Torque.JS V2</div>
+                        <div class="comparison-text torque">Full Control - Anything Can Be Simulated</div>
+                    </div>
+                </div>
+
+                <div class="comparison-item">
+                    <div class="comparison-side">
+                        <div class="comparison-label">Engine Simulator (Open Source)</div>
+                        <div class="comparison-text engine-sim">Fixed Feature Set</div>
+                    </div>
+                    <div class="vs-divider">VS</div>
+                    <div class="comparison-side">
+                        <div class="comparison-label">Torque.JS V2</div>
+                        <div class="comparison-text torque">Full Control Despite Fewer Features (For Now)</div>
+                    </div>
+                </div>
+                
+                <div style="text-align: center; margin-top: 30px;">
+                    <button class="faq-link-button" onclick="expandFAQAndScroll()">📖 See FAQ for More Info</button>
+                </div>
+            </div>
+        </section>
+
+        <div class="divider"></div>
+
+        <!-- FAQ Section -->
+        <section class="faq-section collapsed" id="faqSection">
+            <div class="faq-card">
+                <h2 class="faq-title" onclick="toggleFAQ()">
+                    <span class="faq-toggle-icon">▶</span>
+                    ❓ Frequently Asked Questions
+                </h2>
+                
+                <div class="faq-content">
+                <div class="faq-item">
+                    <div class="faq-question">What's the main difference between Torque.JS and Engine Simulator?</div>
+                    <div class="faq-answer">
+                        <strong style="color: #45a29e; font-size: 0.9em; display: block; margin-bottom: 10px; font-style: italic;">
+                            Note: This comparison refers to the Engine Simulator open source edition available on 
+                            <a href="https://github.com/ange-yaghi/engine-sim" target="_blank" style="color: #66fcf1; text-decoration: underline;">GitHub</a>, 
+                            not the Community Edition or upcoming 3D version.
+                        </strong>
+                        While both tools may look visually similar, Torque.JS uses <strong style="color: #66fcf1;">pure tone generation</strong> 
+                        (synthesis) instead of sound files. This means you can create any engine sound that can be simulated, with full control 
+                        over every parameter. The Engine Simulator open source edition uses pre-recorded sound files (available in the 
+                        <a href="https://github.com/ange-yaghi/engine-sim/tree/master/assets/sound-library" target="_blank" style="color: #66fcf1; text-decoration: underline;">sound library</a>), 
+                        which limits customization to what's available in the library.
+                    </div>
+                </div>
+
+                <div class="faq-item">
+                    <div class="faq-question">Do I need audio engineering knowledge to use Torque.JS?</div>
+                    <div class="faq-answer">
+                        <strong style="color: #66fcf1;">No!</strong> Torque.JS is designed for effortless creation. The intuitive dashboard 
+                        interface allows you to create realistic engine sounds without complex audio understanding. Just load a preset and start tweaking!
+                    </div>
+                </div>
+
+                <div class="faq-item">
+                    <div class="faq-question">Is Torque.JS as robust as Engine Simulator?</div>
+                    <div class="faq-answer">
+                        <strong style="color: #45a29e; font-size: 0.9em; display: block; margin-bottom: 10px; font-style: italic;">
+                            Note: This comparison refers to the Engine Simulator open source edition, not the Community Edition or upcoming 3D version.
+                        </strong>
+                        Torque.JS is still growing, but it's <strong style="color: #66fcf1;">promising for its ease of use</strong>. While the Engine Simulator 
+                        open source edition may have more features currently, Torque.JS offers something unique: <strong>full control</strong> over every aspect of the 
+                        sound, allowing you to simulate anything that can be mathematically generated.
+                    </div>
+                </div>
+
+                <div class="faq-item">
+                    <div class="faq-question">Can I customize everything in Torque.JS?</div>
+                    <div class="faq-answer">
+                        <strong style="color: #66fcf1;">Yes!</strong> Unlike tools with limited customization, Torque.JS gives you complete control 
+                        over pitch, harmonics, filters, distortion, and more. You're not limited to pre-existing sound files - you can create 
+                        anything that can be simulated through synthesis.
+                    </div>
+                </div>
+                </div>
+            </div>
+        </section>
+
+        <div class="divider"></div>
+
+        <!-- Developer & Modder Section -->
+        <section class="info-section">
+            <div class="info-card">
+                <h2 class="info-title">🧑‍💻 For Developers & Modders</h2>
+                <p class="info-description">
+                    Torque is designed to be a community effort! It is <strong style="color: #66fcf1;">Semi-Open Source</strong>, 
+                    inviting contributions and modifications.
+                </p>
+                <p class="info-description">
+                    <strong>📖 Project Repository (Please Read License!):</strong><br>
+                    <a href="https://github.com/gamedev44/Torque" class="info-link" target="_blank">https://github.com/gamedev44/Torque</a>
+                </p>
+            </div>
+        </section>
+
+        <div class="divider"></div>
+
+        <!-- Donation Section -->
+        <section class="info-section">
+            <div class="info-card">
+                <h2 class="info-title">🙏 Support My Work: Donate</h2>
+                <p class="info-description">
+                    Building a complex simulator like this takes countless hours of design, coding, and testing. 
+                    If you enjoy the project and want to support its continued, speedy development, any donation is deeply appreciated!
+                </p>
+                <div style="text-align: center; margin-top: 20px;">
+                    <strong style="color: #66fcf1; display: block; margin-bottom: 15px;">💰 Donate via Cash App:</strong>
+                    <a href="https://cash.app/$4sterCash" class="donate-button" target="_blank">
+                        <img src="assets/Misc/cash_app_donate.png" alt="Donate via Cash App" style="width: auto; height: auto; max-width: 200px;">
+                    </a>
+                </div>
+            </div>
+        </section>
+
+        <!-- Footer -->
+        <footer class="footer">
+            <div class="footer-links">
+                <a href="index.html" class="footer-link">Live App</a>
+                <a href="docs/index.html" class="footer-link">Documentation</a>
+                <a href="TODO.md" class="footer-link">Roadmap</a>
+                <a href="docs/presets.html" class="footer-link">Presets</a>
+                <a href="presets/" class="footer-link">Presets Folder</a>
+                <a href="https://discord.gg/qbbAqRdj" class="footer-link" target="_blank">Discord</a>
+            </div>
+            <p class="copyright">
+                © 2025 Torque.JS | Iron Will Interactive | Built with ❤️ for the community
+            </p>
+        </footer>
+    </div>
+
+    <script>
+        // New Features Modal
+        const modal = document.getElementById('newFeaturesModal');
+        const closeBtn = document.getElementById('closeModal');
+        const dontShowCheckbox = document.getElementById('dontShowAgain');
+        const showUpdatesBtn = document.getElementById('showUpdatesBtn');
+        
+        // Check if user has disabled the modal (using localStorage)
+        const hasDisabledModal = localStorage.getItem('torqueNewFeaturesDisabled');
+        
+        // Show modal on page load if not disabled
+        if (!hasDisabledModal) {
+            // Small delay for smooth appearance
+            setTimeout(() => {
+                if (modal) modal.classList.remove('hidden');
+            }, 500);
+        } else {
+            if (modal) modal.classList.add('hidden');
+            // Show the toggle button if modal is disabled
+            if (showUpdatesBtn) showUpdatesBtn.style.display = 'inline-block';
+        }
+        
+        // Function to close modal and handle "Don't show again" checkbox
+        function closeModal() {
+            if (modal) {
+                modal.classList.add('hidden');
+                
+                // If checkbox is checked, disable modal permanently
+                if (dontShowCheckbox && dontShowCheckbox.checked) {
+                    localStorage.setItem('torqueNewFeaturesDisabled', 'true');
+                    if (showUpdatesBtn) showUpdatesBtn.style.display = 'inline-block';
+                }
+            }
+        }
+        
+        // Close button functionality
+        if (closeBtn) {
+            closeBtn.addEventListener('click', closeModal);
+        }
+        
+        // Close on overlay click
+        if (modal) {
+            modal.addEventListener('click', (e) => {
+                if (e.target === modal) {
+                    closeModal();
+                }
+            });
+        }
+        
+        // Close on Escape key
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && modal && !modal.classList.contains('hidden')) {
+                closeModal();
+            }
+        });
+        
+        // Show Updates button functionality
+        if (showUpdatesBtn) {
+            showUpdatesBtn.addEventListener('click', () => {
+                // Remove the disabled flag
+                localStorage.removeItem('torqueNewFeaturesDisabled');
+                // Hide the button
+                showUpdatesBtn.style.display = 'none';
+                // Show the modal
+                if (modal) {
+                    modal.classList.remove('hidden');
+                    // Uncheck the checkbox
+                    if (dontShowCheckbox) dontShowCheckbox.checked = false;
+                }
+            });
+        }
+
+        // Fetch GitHub Commits (V2 folder only)
+        async function fetchGitHubCommits() {
+            const commitsList = document.getElementById('commits-list');
+            if (!commitsList) return;
+
+            try {
+                const response = await fetch('https://api.github.com/repos/gamedev44/Torque/commits?per_page=5&path=V2');
+                
+                if (!response.ok) {
+                    throw new Error('Failed to fetch commits');
+                }
+
+                const commits = await response.json();
+                
+                if (commits.length === 0) {
+                    commitsList.innerHTML = '<div class="commits-loading">No commits found.</div>';
+                    return;
+                }
+
+                commitsList.innerHTML = commits.map(commit => {
+                    const commitDate = new Date(commit.commit.author.date);
+                    const formattedDate = commitDate.toLocaleDateString('en-US', { 
+                        month: 'short', 
+                        day: 'numeric', 
+                        year: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit'
+                    });
+                    
+                    const shortSha = commit.sha.substring(0, 7);
+                    const commitMessage = commit.commit.message.split('\n')[0]; // First line only
+                    
+                    return `
+                        <div class="commit-item">
+                            <div class="commit-message">${escapeHtml(commitMessage)}</div>
+                            <div class="commit-meta">
+                                <div class="commit-author">
+                                    <span>👤</span>
+                                    <span>${escapeHtml(commit.commit.author.name)}</span>
+                                </div>
+                                <div class="commit-date">${formattedDate}</div>
+                                <a href="${commit.html_url}" target="_blank" rel="noopener noreferrer" class="commit-link">
+                                    View → ${shortSha}
+                                </a>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+            } catch (error) {
+                console.error('Error fetching commits:', error);
+                commitsList.innerHTML = '<div class="commits-error">Unable to load commits. <a href="https://github.com/gamedev44/Torque/commits/main" target="_blank" rel="noopener noreferrer" style="color: #66fcf1;">View on GitHub →</a></div>';
+            }
+        }
+
+        // Helper function to escape HTML
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // Fetch commits when modal is shown
+        if (modal) {
+            const observer = new MutationObserver((mutations) => {
+                mutations.forEach((mutation) => {
+                    if (mutation.type === 'attributes' && mutation.attributeName === 'class') {
+                        if (!modal.classList.contains('hidden')) {
+                            fetchGitHubCommits();
+                        }
+                    }
+                });
+            });
+
+            observer.observe(modal, { attributes: true });
+
+            // Also fetch on initial load if modal is visible
+            if (!hasDisabledModal) {
+                setTimeout(() => {
+                    fetchGitHubCommits();
+                }, 600);
+            }
+        }
+
+        // Toggle Latest Improvements Section
+        function toggleLatestImprovements() {
+            const section = document.getElementById('latestImprovementsSection');
+            if (section) {
+                section.classList.toggle('collapsed');
+            }
+        }
+
+        // Toggle FAQ Section
+        function toggleFAQ() {
+            const section = document.getElementById('faqSection');
+            if (section) {
+                section.classList.toggle('collapsed');
+            }
+        }
+
+        // Expand FAQ and scroll to it
+        function expandFAQAndScroll() {
+            const section = document.getElementById('faqSection');
+            if (section) {
+                // Remove collapsed class to expand
+                section.classList.remove('collapsed');
+                
+                // Scroll to FAQ section with smooth behavior
+                setTimeout(() => {
+                    section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }, 100);
+            }
+        }
+    </script>
+</body>
+</html>
