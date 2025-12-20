@@ -186,4 +186,4 @@ See [LICENSE](LICENSE) for full terms.
 
 ---
 
-**Developed with ❤️ by [gamedev44](https://github.com/gamedev44)**
+**Developed with ❤️ by [Asterisk](https://github.com/gamedev44)**
