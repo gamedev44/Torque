@@ -26,8 +26,14 @@ const settings = {
 let slipAtRedline = true; // Default: slip at redline
 let slipStartRPM = 7650; // Custom slip start RPM (85% of 9000 default limiter)
 
+// Governor setting - prevents RPM from exceeding redline
+let governorEnabled = true; // Default: ON (enforces redline)
+
 // Engine Video path - defaults to V8
 let ENGINE_VIDEO_PATH = './assets/Engines/V/V8.mp4';
+
+// Track previous playback rate for smooth transitions
+let previousPlaybackRate = 0.5;
 
 /* Vehicle */
 const vehicle = new Vehicle();
@@ -54,8 +60,10 @@ const engineModalSearch = document.getElementById('engine-modal-search') as HTML
 const engineModalSearchResults = document.getElementById('engine-modal-search-results') as HTMLDivElement;
 const waveformCanvas = document.getElementById('waveform-canvas') as HTMLCanvasElement;
 const engineVideoCanvas = document.getElementById('engine-video-canvas') as HTMLCanvasElement;
-// Image overlay element (managed dynamically)
-let engineImageEl: HTMLImageElement | null = null;
+if (engineVideoCanvas) {
+    engineVideoCanvas.style.mixBlendMode = 'screen';
+    engineVideoCanvas.style.background = 'transparent';
+}
 // Slip controls (declare before first usage)
 const slipAtRedlineCheckbox = document.getElementById('slip-at-redline') as HTMLInputElement;
 const slipStartSlider = document.getElementById('slider-slip-start') as HTMLInputElement;
@@ -194,6 +202,33 @@ let Meter = function Meter(this: any, $elm: HTMLElement, config: any) {
 /* Initialize Gauges */
 let speedMeter: any = null;
 let rpmMeter: any = null;
+let tempMeter: any = null;
+
+// Thermal management system
+const ROOM_TEMP = 20; // Celsius (ambient temperature)
+const OPERATING_TEMP = 70; // Celsius (normal operating temperature)
+let engineTemp = ROOM_TEMP; // Start at room temperature
+let allowOverheat = false;
+let isEngineSeized = false;
+let thermalDamage = 0; // 0-100% damage accumulation
+let lastEngineRunTime = 0; // Track when engine last ran
+
+// Unit preferences
+let useFahrenheit = false; // Default to Celsius
+let useMPH = false; // Default to km/h
+
+
+/* // Starter sound system
+let starterAudio: HTMLAudioElement | null = null;
+let isStarterPlaying = false;
+const STARTER_SOUNDS: Record<string, string> = {
+    'generic': './audio/Engine Starts/generic Engine Start.mp3',
+    'auston_martin': './audio/Engine Starts/auston-martin-rapid-start-engine start idle and -engine-revs.mp4',
+    'ford_ltl': './audio/Engine Starts/ford-ltl-9000_engine-start-and-idle.mp3',
+    'merlin_v12': './audio/Engine Starts/Merlin v12 Spitfire.mp3',
+    'v12_scream': './audio/Engine Starts/V12 ENGINE REV AND HIGH SCREAM.mp3',
+    'volvo': './audio/Engine Starts/volvo-engine-start and idle.mp3'
+}; */
 
 function initGauges() {
     const speedGaugeEl = document.getElementById('gauge-speed');
@@ -219,8 +254,16 @@ function initGauges() {
     
     console.log('initGauges - maxSpeed:', maxSpeed, 'from config:', (window as any).currentEngineConfig?.gauges);
     
+    // Convert to MPH if that unit is selected
+    if (useMPH) {
+        maxSpeed = maxSpeed * 0.621371; // Convert km/h to mph
+    }
+    
     // Round max speed to nearest 10 for clean gauge display
     maxSpeed = Math.ceil(maxSpeed / 10) * 10;
+    
+    const speedUnit = useMPH ? 'mph' : 'km/h';
+    const speedLabel = useMPH ? 'MPH' : 'KM/H';
     
     if (speedGaugeEl) {
         speedGaugeEl.innerHTML = '';
@@ -229,10 +272,10 @@ function initGauges() {
             valueMin: 0,
             valueMax: maxSpeed,
             valueStep: maxSpeed / 10, // 10 major ticks
-            valueUnit: '<div>Speed</div><span>km/h</span>',
+            valueUnit: `<div>Speed</div><span>${speedLabel}</span>`,
             angleMin: 30,
             angleMax: 330,
-            labelUnit: 'km/h',
+            labelUnit: speedUnit,
             labelFormat: (v: number) => Math.round(v), // Show numbers on gauge
             needleFormat: (v: number) => Math.round(v), // Show value in center
             valueRed: maxSpeed * 0.8 // Redline at 80% of max
@@ -842,27 +885,88 @@ async function selectEngine(configName: string) {
         const config = customConfigs[configName];
         (window as any).currentEngineConfig = config;
         await vehicle.init(config as any);
+        
+        // Ensure audio context is resumed and playing if engine is running
+        if (isEngineRunning && vehicle.audio.ctx) {
+            if (vehicle.audio.ctx.state === 'suspended') {
+                await vehicle.audio.ctx.resume();
+            }
+            console.log('Audio context state:', vehicle.audio.ctx.state);
+        }
+        
         await new Promise(resolve => setTimeout(resolve, 10));
         console.log('Loading custom engine:', configName);
+        
+        // Load custom engine info for display
+        const customEngines = loadCustomEngines();
+        const customEngineItem = customEngines.find(e => e.value === configName);
+        
+        // Ensure buttons are in correct state after engine change
+        // If engine is not running, show start button; if running, show stop button
+        if (!isEngineRunning) {
+            if (startBtn) startBtn.style.display = 'block';
+            if (stopEngineBtn) stopEngineBtn.style.display = 'none';
+            if (statusDisplay) statusDisplay.textContent = 'ENGINE STOPPED // SELECTED: ' + (customEngineItem?.name || configName).toUpperCase();
+        } else {
+            if (startBtn) startBtn.style.display = 'none';
+            if (stopEngineBtn) stopEngineBtn.style.display = 'block';
+            if (statusDisplay) statusDisplay.textContent = 'ENGINE RUNNING // READY';
+        }
+        
         initGauges();
         
         // Update display
-        const customEngines = loadCustomEngines();
-    const customEngineItem = customEngines.find(e => e.value === configName);
-    if (currentEngineDisplay && customEngineItem) {
-        currentEngineDisplay.textContent = customEngineItem.name;
+        if (currentEngineDisplay && customEngineItem) {
+            currentEngineDisplay.textContent = customEngineItem.name;
         }
         
-        // Update video
+        // Update video IMMEDIATELY
         const engineVideo = document.getElementById('engine-video') as HTMLVideoElement;
         if (engineVideo) {
             const videoPath = (config.engine as any)?.video_path || getVideoPathForEngine(config.engine?.type || 'v8');
             ENGINE_VIDEO_PATH = videoPath;
+            
+            console.log('Custom engine changed to:', configName, 'Video path:', videoPath);
+            
+            engineVideo.pause();
+            engineVideo.currentTime = 0;
             engineVideo.src = videoPath;
+            
+            // Show video frame IMMEDIATELY as soon as metadata loads
+            engineVideo.onloadedmetadata = () => {
+                updateVideoVisualizer(isEngineRunning ? engine.rpm : 0);
+                if (engineVideo.videoWidth > 0) {
+                    requestAnimationFrame(() => {
+                        processVideoFrame();
+                    });
+                }
+            };
+            
+            engineVideo.onloadeddata = () => {
+                updateVideoVisualizer(isEngineRunning ? engine.rpm : 0);
+                if (engineVideo.videoWidth > 0) {
+                    processVideoFrame();
+                }
+                if (isEngineRunning && engine.rpm > 0) {
+                    engineVideo.play().catch(err => console.warn('Video play failed:', err));
+                }
+            };
+            
+            engineVideo.oncanplay = () => {
+                updateVideoVisualizer(isEngineRunning ? engine.rpm : 0);
+                if (engineVideo.videoWidth > 0) {
+                    processVideoFrame();
+                }
+                if (isEngineRunning && engine.rpm > 0) {
+                    engineVideo.play().catch(err => console.warn('Video play failed:', err));
+                }
+            };
+            
             engineVideo.load();
+            
+            // Update visualizer immediately
+            updateVideoVisualizer(isEngineRunning ? engine.rpm : 0);
         }
-        
-        updateVideoVisualizer(isEngineRunning ? engine.rpm : 0);
         return;
     }
     
@@ -886,9 +990,29 @@ async function selectEngine(configName: string) {
     
     await vehicle.init(configToUse as any);
     
+    // Ensure audio context is resumed and playing if engine is running
+    if (isEngineRunning && vehicle.audio.ctx) {
+        if (vehicle.audio.ctx.state === 'suspended') {
+            await vehicle.audio.ctx.resume();
+        }
+        console.log('Audio context state:', vehicle.audio.ctx.state);
+    }
+    
     // Ensure engine is available before initializing gauges
     // Wait a tiny bit to ensure engine object is fully initialized
     await new Promise(resolve => setTimeout(resolve, 10));
+    
+    // Ensure buttons are in correct state after engine change
+    // If engine is not running, show start button; if running, show stop button
+    if (!isEngineRunning) {
+        if (startBtn) startBtn.style.display = 'block';
+        if (stopEngineBtn) stopEngineBtn.style.display = 'none';
+        if (statusDisplay) statusDisplay.textContent = 'ENGINE STOPPED // SELECTED: ' + (engineItem?.name || configName).toUpperCase();
+    } else {
+        if (startBtn) startBtn.style.display = 'none';
+        if (stopEngineBtn) stopEngineBtn.style.display = 'block';
+        if (statusDisplay) statusDisplay.textContent = 'ENGINE RUNNING // READY';
+    }
     
     // Reinitialize gauges with new engine settings (updates redline, max speed, etc.)
     console.log('Initializing gauges for engine:', configName);
@@ -910,11 +1034,6 @@ async function selectEngine(configName: string) {
         engineVideo.currentTime = 0; // Reset to frame 0
         engineVideo.src = videoPath;
         
-        // Hide canvas while loading to prevent thumbnail flashing
-        if (engineVideoCanvas) {
-            engineVideoCanvas.style.display = 'none';
-        }
-        
         // Add error handler
         engineVideo.onerror = (e) => {
             console.error('Video load error on engine change:', videoPath, engineVideo.error);
@@ -923,34 +1042,54 @@ async function selectEngine(configName: string) {
             }
         };
         
-        engineVideo.onloadeddata = () => {
-            console.log('Video loaded on engine change:', videoPath);
-            // Show video in OFF state immediately (even if engine not running)
+        // Show video frame IMMEDIATELY as soon as metadata loads (faster than loadeddata)
+        engineVideo.onloadedmetadata = () => {
+            console.log('Video metadata loaded on engine change:', videoPath);
+            // Show video frame immediately
             updateVideoVisualizer(isEngineRunning ? engine.rpm : 0);
-            // Process frame to show it
+            // Process frame to show it as soon as possible
             if (engineVideo.videoWidth > 0) {
-                processVideoFrame();
+                // Small delay to ensure frame is ready, then process
+                requestAnimationFrame(() => {
+                    processVideoFrame();
+                });
             }
         };
         
-        engineVideo.oncanplay = () => {
-            console.log('Video can play on engine change:', videoPath);
-            // Show video in OFF state immediately
+        engineVideo.onloadeddata = () => {
+            console.log('Video data loaded on engine change:', videoPath);
+            // Update visualizer and process frame
             updateVideoVisualizer(isEngineRunning ? engine.rpm : 0);
-            // Process frame to show it
             if (engineVideo.videoWidth > 0) {
                 processVideoFrame();
             }
-            // Only play if engine is actually running
+            // If engine is running, start playback immediately
             if (isEngineRunning && engine.rpm > 0) {
                 engineVideo.play().catch(err => console.warn('Video play failed:', err));
             }
         };
         
+        engineVideo.oncanplay = () => {
+            console.log('Video can play on engine change:', videoPath);
+            // Update visualizer again to ensure it's showing
+            updateVideoVisualizer(isEngineRunning ? engine.rpm : 0);
+            if (engineVideo.videoWidth > 0) {
+                processVideoFrame();
+            }
+            // Ensure video is playing if engine is running
+            if (isEngineRunning && engine.rpm > 0) {
+                engineVideo.play().catch(err => console.warn('Video play failed:', err));
+            }
+        };
+        
+        // Load video immediately
         engineVideo.load();
+        
+        // Update visualizer immediately even before video loads (shows container)
+        updateVideoVisualizer(isEngineRunning ? engine.rpm : 0);
     }
     
-    // Update visualizer immediately (shows OFF state)
+    // Update visualizer immediately (shows OFF state or current state)
     updateVideoVisualizer(isEngineRunning ? engine.rpm : 0);
 }
 
@@ -987,13 +1126,369 @@ engineModal?.addEventListener('click', (e) => {
 
 // Close modal with Escape key
 document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape' && engineModal && engineModal.style.display === 'block') {
-        engineModal.style.display = 'none';
-        document.body.classList.remove('modal-open');
-        if (engineModalSearch) engineModalSearch.value = '';
-        if (engineModalSearchResults) engineModalSearchResults.style.display = 'none';
+    if (e.key === 'Escape') {
+        if (engineModal && engineModal.style.display === 'block') {
+            engineModal.style.display = 'none';
+            document.body.classList.remove('modal-open');
+            if (engineModalSearch) engineModalSearch.value = '';
+            if (engineModalSearchResults) engineModalSearchResults.style.display = 'none';
+        }
+        if (thermalModal && thermalModal.style.display === 'flex') {
+            thermalModal.style.display = 'none';
+        }
+    }
+    // Don't stop propagation - allow keyboard controls to work even with modal open
+});
+
+// Thermal Management Modal
+const thermalModalBtn = document.getElementById('thermal-modal-btn') as HTMLButtonElement;
+const thermalModal = document.getElementById('thermal-modal') as HTMLDivElement;
+const closeThermalModal = document.getElementById('close-thermal-modal') as HTMLButtonElement;
+const allowOverheatToggle = document.getElementById('allow-overheat-toggle') as HTMLInputElement;
+
+thermalModalBtn?.addEventListener('click', () => {
+    if (thermalModal) {
+        thermalModal.style.display = 'flex';
+        // Don't add modal-open class - allow interaction behind modal
+        setTimeout(() => {
+            (window as any).switchCarType(currentCarType);
+        }, 100);
     }
 });
+
+closeThermalModal?.addEventListener('click', () => {
+    if (thermalModal) {
+        thermalModal.style.display = 'none';
+    }
+});
+
+thermalModal?.addEventListener('click', (e) => {
+    if (e.target === thermalModal) {
+        thermalModal.style.display = 'none';
+    }
+});
+
+allowOverheatToggle?.addEventListener('change', (e) => {
+    allowOverheat = (e.target as HTMLInputElement).checked;
+    console.log('Allow Overheat:', allowOverheat ? 'ON (DANGER MODE)' : 'OFF (SAFE MODE)');
+    updateThermometerDisplay(); // Update external display immediately
+});
+
+// Thermal Modal Car SVG Templates
+const carTemplates: Record<string, string> = {
+    gt: `
+        <path d="M100,100 Q100,50 175,50 Q250,50 250,100 L260,200 Q265,300 260,450 Q255,550 175,550 Q95,550 90,450 Q85,300 90,200 Z" fill="rgba(255,255,255,0.02)" stroke="rgba(255,255,255,0.1)" />
+        <rect id="thermal-engine" x="135" y="110" width="80" height="100" rx="8" class="dmg-0" />
+        <rect id="thermal-drivetrain" x="167" y="210" width="16" height="200" rx="2" class="dmg-0" />
+        <rect id="thermal-wheel-fl" x="65" y="140" width="30" height="60" rx="4" class="dmg-0" />
+        <rect id="thermal-wheel-fr" x="255" y="140" width="30" height="60" rx="4" class="dmg-0" />
+        <rect id="thermal-wheel-rl" x="65" y="420" width="30" height="60" rx="4" class="dmg-0" />
+        <rect id="thermal-wheel-rr" x="255" y="420" width="30" height="60" rx="4" class="dmg-0" />
+    `,
+    f1: `
+        <path d="M140,50 L210,50 L200,200 L150,200 Z" fill="rgba(255,255,255,0.02)" stroke="rgba(255,255,255,0.1)" />
+        <rect id="thermal-f-wing" x="80" y="70" width="190" height="20" rx="2" class="dmg-0" />
+        <path d="M140,200 L210,200 L220,320 L130,320 Z" fill="rgba(255,255,255,0.05)" stroke="rgba(255,255,255,0.2)" />
+        <path d="M110,320 L240,320 L260,520 L90,520 Z" fill="rgba(255,255,255,0.02)" stroke="rgba(255,255,255,0.1)" />
+        <rect id="thermal-r-wing" x="100" y="550" width="150" height="30" rx="2" class="dmg-0" />
+        <rect id="thermal-engine" x="145" y="340" width="60" height="90" rx="4" class="dmg-0" />
+        <rect id="thermal-ers-unit" x="155" y="440" width="40" height="40" rx="20" class="dmg-0" />
+        <rect id="thermal-drivetrain" x="170" y="480" width="10" height="70" class="dmg-0" />
+        <rect id="thermal-wheel-fl" x="60" y="120" width="35" height="70" rx="2" class="dmg-0" />
+        <rect id="thermal-wheel-fr" x="255" y="120" width="35" height="70" rx="2" class="dmg-0" />
+        <rect id="thermal-wheel-rl" x="50" y="450" width="45" height="80" rx="2" class="dmg-0" />
+        <rect id="thermal-wheel-rr" x="255" y="450" width="45" height="80" rx="2" class="dmg-0" />
+    `,
+    nascar: `
+        <rect x="90" y="60" width="170" height="480" rx="20" fill="rgba(255,255,255,0.02)" stroke="rgba(255,255,255,0.2)" />
+        <rect id="thermal-engine" x="125" y="100" width="100" height="120" rx="5" class="dmg-0" />
+        <rect id="thermal-drivetrain" x="165" y="220" width="20" height="240" class="dmg-0" />
+        <line x1="110" y1="100" x2="110" y2="500" stroke="rgba(255,255,255,0.1)" stroke-width="4" />
+        <line x1="240" y1="100" x2="240" y2="500" stroke="rgba(255,255,255,0.1)" stroke-width="4" />
+        <rect id="thermal-wheel-fl" x="70" y="130" width="35" height="70" rx="2" class="dmg-0" />
+        <rect id="thermal-wheel-fr" x="245" y="130" width="35" height="70" rx="2" class="dmg-0" />
+        <rect id="thermal-wheel-rl" x="70" y="430" width="35" height="70" rx="2" class="dmg-0" />
+        <rect id="thermal-wheel-rr" x="245" y="430" width="35" height="70" rx="2" class="dmg-0" />
+    `
+};
+
+let currentCarType = 'gt';
+const thermalInputs = {
+    engine: document.getElementById('thermal-input-engine') as HTMLInputElement,
+    drive: document.getElementById('thermal-input-drive') as HTMLInputElement,
+    brakes: document.getElementById('thermal-input-brakes') as HTMLInputElement
+};
+const thermalLabels = {
+    engine: document.getElementById('thermal-label-engine') as HTMLSpanElement,
+    drive: document.getElementById('thermal-label-drive') as HTMLSpanElement,
+    brakes: document.getElementById('thermal-label-brakes') as HTMLSpanElement
+};
+const thermalFailures = {
+    overheat: { active: false, el: document.getElementById('thermal-warn-overheat') as HTMLDivElement },
+    ers: { active: false, el: document.getElementById('thermal-warn-ers') as HTMLDivElement },
+    drs: { active: false, el: document.getElementById('thermal-warn-drs') as HTMLDivElement },
+    aero: { active: false, el: document.getElementById('thermal-warn-aero') as HTMLDivElement }
+};
+
+(window as any).switchCarType = (type: string) => {
+    currentCarType = type;
+    document.querySelectorAll('.type-btn').forEach(b => b.classList.remove('selected'));
+    const btn = document.getElementById(`btn-${type}`);
+    if (btn) {
+        btn.classList.add('selected');
+        btn.style.background = 'rgba(0, 229, 255, 0.1)';
+        btn.style.borderColor = '#00e5ff';
+        btn.style.color = '#00e5ff';
+    }
+    
+    const carGroup = document.getElementById('thermal-car-group');
+    if (carGroup) {
+        carGroup.innerHTML = carTemplates[type];
+    }
+    
+    // Adjust warning positions based on car type
+    if (type === 'f1') {
+        thermalFailures.overheat.el.style.top = '380px';
+        thermalFailures.ers.el.style.top = '440px';
+    } else {
+        thermalFailures.overheat.el.style.top = '150px';
+        thermalFailures.ers.el.style.top = '250px';
+    }
+    
+    updateThermalVisuals();
+};
+
+(window as any).toggleThermalFailure = (key: string) => {
+    if (thermalFailures[key as keyof typeof thermalFailures]) {
+        const failure = thermalFailures[key as keyof typeof thermalFailures];
+        failure.active = !failure.active;
+        failure.el.style.display = failure.active ? 'block' : 'none';
+        updateThermalVisuals();
+    }
+};
+
+function updateThermalVisuals() {
+    if (!thermalInputs.engine || !thermalLabels.engine) return;
+    
+    const eVal = parseInt(thermalInputs.engine.value);
+    const dVal = parseInt(thermalInputs.drive.value);
+    const bVal = parseInt(thermalInputs.brakes.value);
+    
+    thermalLabels.engine.textContent = ((eVal / 6) * 100).toFixed(0) + '%';
+    thermalLabels.drive.textContent = ((dVal / 6) * 100).toFixed(0) + '%';
+    thermalLabels.brakes.textContent = ((bVal / 6) * 100).toFixed(0) + '%';
+    
+    // Update SVG elements
+    const engine = document.getElementById('thermal-engine');
+    const drive = document.getElementById('thermal-drivetrain');
+    if (engine) engine.setAttribute('class', `dmg-${eVal}`);
+    if (drive) drive.setAttribute('class', `dmg-${dVal}`);
+    
+    // Update wheels
+    ['fl', 'fr', 'rl', 'rr'].forEach(pos => {
+        const w = document.getElementById(`thermal-wheel-${pos}`);
+        if (w) w.setAttribute('class', `dmg-${bVal}`);
+    });
+    
+    // F1-specific components
+    if (currentCarType === 'f1') {
+        const ers = document.getElementById('thermal-ers-unit');
+        const rWing = document.getElementById('thermal-r-wing');
+        const fWing = document.getElementById('thermal-f-wing');
+        
+        if (ers) ers.setAttribute('class', thermalFailures.ers.active ? 'dmg-6' : (dVal > 3 ? 'dmg-3' : 'dmg-0'));
+        if (rWing) rWing.setAttribute('class', thermalFailures.drs.active ? 'dmg-5' : 'dmg-0');
+        if (fWing) fWing.setAttribute('class', thermalFailures.aero.active ? 'dmg-4' : 'dmg-0');
+    }
+    
+    // Update readout
+    const readout = document.getElementById('thermal-readout');
+    if (readout) {
+        let log: string[] = [];
+        if (eVal > 4) log.push('> CRITICAL THERMAL BREACH');
+        if (dVal > 4) log.push('> TORQUE SYNC FAILURE');
+        if (thermalFailures.overheat.active) log.push('> ENGINE SHUTDOWN IMMINENT');
+        if (currentCarType === 'f1' && thermalFailures.ers.active) log.push('> HYBRID HARVESTING ERROR');
+        
+        readout.innerHTML = log.length ? log.join('<br>') : 'MONITORING ACTIVE...<br>ALL SYSTEMS NOMINAL.';
+    }
+    
+    // Calculate temperature based on damage and failures
+    const avgDamage = (eVal + dVal + bVal) / 3;
+    const baseTemp = 70 + (avgDamage * 35); // 70-280°C range
+    engineTemp = baseTemp + (thermalFailures.overheat.active ? 50 : 0);
+    
+    // Update external thermometer display
+    updateThermometerDisplay();
+    
+    // Spawn smoke if critical
+    if (eVal >= 5 || thermalFailures.overheat.active) {
+        spawnThermalSmoke();
+    }
+}
+
+function updateThermometerDisplay() {
+    const tempValue = document.getElementById('temp-value');
+    const thermoFluid = document.getElementById('thermo-fluid');
+    const thermoBulb = document.getElementById('thermo-bulb');
+    const overheatStatus = document.getElementById('overheat-status');
+    const tempStatus = document.getElementById('temp-status');
+    
+    // Convert to display unit (Fahrenheit if enabled)
+    const displayTemp = useFahrenheit ? (engineTemp * 9/5 + 32) : engineTemp;
+    const unit = useFahrenheit ? '°F' : '°C';
+    
+    if (tempValue) {
+        tempValue.textContent = Math.round(displayTemp) + unit;
+        
+        // Color based on temperature (using Celsius for logic)
+        if (engineTemp <= ROOM_TEMP + 5) {
+            // Room temperature
+            tempValue.style.color = '#66aaff';
+            tempValue.style.textShadow = 'none';
+        } else if (engineTemp >= 230) {
+            tempValue.style.color = '#ff0000';
+            tempValue.style.textShadow = '0 0 10px rgba(255, 0, 0, 0.8)';
+        } else if (engineTemp >= 180) {
+            tempValue.style.color = '#ff9100';
+            tempValue.style.textShadow = '0 0 8px rgba(255, 145, 0, 0.6)';
+        } else if (engineTemp >= 120) {
+            tempValue.style.color = '#ffea00';
+            tempValue.style.textShadow = 'none';
+        } else {
+            tempValue.style.color = '#00ffaa';
+            tempValue.style.textShadow = 'none';
+        }
+    }
+    
+    if (thermoFluid && thermoBulb) {
+        // Fluid level: 0% at room temp (20°C), 100% at 300°C
+        const fluidPercent = Math.min(100, Math.max(0, ((engineTemp - ROOM_TEMP) / (300 - ROOM_TEMP)) * 100));
+        thermoFluid.style.height = fluidPercent + '%';
+        
+        // Change fluid color based on temp
+        if (engineTemp <= ROOM_TEMP + 5) {
+            // Room temperature - cool blue
+            thermoFluid.style.background = 'linear-gradient(to top, #4488ff, #66aaff, #88ccff)';
+            thermoFluid.style.boxShadow = 'none';
+            thermoBulb.style.background = 'radial-gradient(circle, #6699ff, #4488ff)';
+            thermoBulb.style.boxShadow = '0 0 10px rgba(68, 136, 255, 0.6)';
+        } else if (engineTemp >= 230) {
+            thermoFluid.style.background = 'linear-gradient(to top, #ff0000, #ff3300, #ff6600)';
+            thermoFluid.style.boxShadow = '0 0 10px rgba(255, 0, 0, 0.8)';
+            thermoBulb.style.background = 'radial-gradient(circle, #ff4444, #ff0000)';
+            thermoBulb.style.boxShadow = '0 0 15px rgba(255, 0, 0, 0.9)';
+        } else if (engineTemp >= 180) {
+            thermoFluid.style.background = 'linear-gradient(to top, #ff4400, #ff6600, #ff8800)';
+            thermoFluid.style.boxShadow = '0 0 8px rgba(255, 100, 0, 0.6)';
+            thermoBulb.style.background = 'radial-gradient(circle, #ff6600, #ff4400)';
+            thermoBulb.style.boxShadow = '0 0 12px rgba(255, 100, 0, 0.7)';
+        } else if (engineTemp >= 120) {
+            thermoFluid.style.background = 'linear-gradient(to top, #ff8800, #ffaa00, #ffcc00)';
+            thermoFluid.style.boxShadow = 'none';
+            thermoBulb.style.background = 'radial-gradient(circle, #ffaa00, #ff8800)';
+            thermoBulb.style.boxShadow = '0 0 10px rgba(255, 170, 0, 0.6)';
+        } else {
+            // Warming up - green
+            thermoFluid.style.background = 'linear-gradient(to top, #00ffaa, #00ff88, #00ff66)';
+            thermoFluid.style.boxShadow = 'none';
+            thermoBulb.style.background = 'radial-gradient(circle, #00ffaa, #00ff88)';
+            thermoBulb.style.boxShadow = '0 0 10px rgba(0, 255, 170, 0.6)';
+        }
+    }
+    
+    if (overheatStatus) {
+        if (allowOverheat) {
+            overheatStatus.textContent = '🔓 DANGER';
+            overheatStatus.style.background = 'rgba(255, 0, 0, 0.3)';
+            overheatStatus.style.borderColor = '#ff0000';
+            overheatStatus.style.animation = 'pulse 1s infinite';
+        } else {
+            overheatStatus.textContent = '🔒 SAFE';
+            overheatStatus.style.background = 'rgba(0, 255, 170, 0.2)';
+            overheatStatus.style.borderColor = '#00ffaa';
+            overheatStatus.style.animation = 'none';
+        }
+    }
+    
+    if (tempStatus) {
+        if (engineTemp <= ROOM_TEMP + 5) {
+            tempStatus.textContent = '❄️ ROOM TEMP';
+            tempStatus.style.color = '#66aaff';
+        } else if (engineTemp >= 250) {
+            tempStatus.textContent = '☠️ CRITICAL';
+            tempStatus.style.color = '#ff0000';
+        } else if (engineTemp >= 230) {
+            tempStatus.textContent = '🔥 DANGER';
+            tempStatus.style.color = '#ff3300';
+        } else if (engineTemp >= 180) {
+            tempStatus.textContent = '⚠️ HIGH';
+            tempStatus.style.color = '#ff9100';
+        } else if (engineTemp >= 120) {
+            tempStatus.textContent = '➜ WARM';
+            tempStatus.style.color = '#ffea00';
+        } else if (engineTemp >= OPERATING_TEMP) {
+            tempStatus.textContent = 'NOMINAL';
+            tempStatus.style.color = '#00ffaa';
+        } else {
+            tempStatus.textContent = '🌡️ WARMING';
+            tempStatus.style.color = '#88ddff';
+        }
+    }
+}
+
+function spawnThermalSmoke() {
+    if (Math.random() > 0.4) return;
+    
+    const smokeContainer = document.getElementById('thermal-smoke-container');
+    const engine = document.getElementById('thermal-engine');
+    if (!smokeContainer || !engine) return;
+    
+    const smoke = document.createElement('div');
+    smoke.className = 'smoke-particle';
+    
+    try {
+        const rect = (engine as any).getBBox();
+        smoke.style.left = (rect.x + rect.width / 2 + (Math.random() * 30 - 15)) + 'px';
+        smoke.style.top = (rect.y + rect.height / 2) + 'px';
+        smoke.style.width = '12px';
+        smoke.style.height = '12px';
+        
+        smokeContainer.appendChild(smoke);
+        setTimeout(() => smoke.remove(), 1200);
+    } catch (e) {
+        // Silently fail if getBBox not available
+    }
+}
+
+thermalModalBtn?.addEventListener('click', () => {
+    if (thermalModal) {
+        thermalModal.style.display = 'flex';
+        // Don't add modal-open class - allow interaction behind modal
+        setTimeout(() => {
+            (window as any).switchCarType(currentCarType);
+        }, 100);
+    }
+});
+
+closeThermalModal?.addEventListener('click', () => {
+    if (thermalModal) {
+        thermalModal.style.display = 'none';
+        // No need to remove modal-open since we don't add it
+    }
+});
+
+thermalModal?.addEventListener('click', (e) => {
+    if (e.target === thermalModal) {
+        thermalModal.style.display = 'none';
+        // No need to remove modal-open since we don't add it
+    }
+});
+
+// Attach event listeners to thermal inputs
+if (thermalInputs.engine) thermalInputs.engine.addEventListener('input', updateThermalVisuals);
+if (thermalInputs.drive) thermalInputs.drive.addEventListener('input', updateThermalVisuals);
+if (thermalInputs.brakes) thermalInputs.brakes.addEventListener('input', updateThermalVisuals);
 
 // Search functionality in modal
 let modalSearchTimeout: number | null = null;
@@ -1270,6 +1765,13 @@ const setupAdvancedControls = () => {
         drivetrain.compliance = parseFloat((e.target as HTMLInputElement).value);
         document.getElementById('val-compliance')!.textContent = drivetrain.compliance.toFixed(2);
     });
+    
+    // Governor toggle (RPM Limiter)
+    const governorToggle = document.getElementById('governor-toggle') as HTMLInputElement;
+    governorToggle?.addEventListener('change', (e) => {
+        governorEnabled = (e.target as HTMLInputElement).checked;
+        console.log('Governor', governorEnabled ? 'ENABLED' : 'DISABLED');
+    });
 
     // Export/Import INI Configuration
     const exportConfigBtn = document.getElementById('export-config-btn') as HTMLButtonElement;
@@ -1521,10 +2023,110 @@ function stopEngine() {
 }
 
 /* Initialization */
-startBtn?.addEventListener('click', start);
 stopEngineBtn?.addEventListener('click', stopEngine);
 
-async function start() {
+// Unit Toggle Buttons
+const tempUnitToggle = document.getElementById('temp-unit-toggle') as HTMLButtonElement;
+const speedUnitToggle = document.getElementById('speed-unit-toggle') as HTMLButtonElement;
+
+tempUnitToggle?.addEventListener('click', () => {
+    useFahrenheit = !useFahrenheit;
+    if (tempUnitToggle) {
+        tempUnitToggle.textContent = useFahrenheit ? '°F' : '°C';
+        tempUnitToggle.style.color = useFahrenheit ? '#ff9100' : '#00e5ff';
+    }
+    updateThermometerDisplay();
+});
+
+speedUnitToggle?.addEventListener('click', () => {
+    useMPH = !useMPH;
+    if (speedUnitToggle) {
+        speedUnitToggle.textContent = useMPH ? 'MPH' : 'KM/H';
+        speedUnitToggle.style.color = useMPH ? '#ff9100' : '#00e5ff';
+    }
+    // Reinitialize speed gauge with new units
+    initGauges();
+});
+
+/* // Starter Sound System
+function getStarterSoundForEngine(configName: string): string {
+    // Map engines to appropriate starter sounds
+    const configLower = configName.toLowerCase();
+    
+    if (configLower.includes('v12') || configLower.includes('ferr')) {
+        return STARTER_SOUNDS.v12_scream;
+    } else if (configLower.includes('merlin') || configLower.includes('spitfire')) {
+        return STARTER_SOUNDS.merlin_v12;
+    } else if (configLower.includes('volvo')) {
+        return STARTER_SOUNDS.volvo;
+    } else if (configLower.includes('ford') || configLower.includes('truck')) {
+        return STARTER_SOUNDS.ford_ltl;
+    } else if (configLower.includes('aston') || configLower.includes('martin')) {
+        return STARTER_SOUNDS.auston_martin;
+    }
+    
+    // Default generic starter
+    return STARTER_SOUNDS.generic;
+}
+
+function playStarterSound(): Promise<void> {
+    return new Promise((resolve) => {
+        // Get appropriate starter sound for current engine
+        const starterSoundPath = getStarterSoundForEngine(settings.activeConfig);
+        
+        // Create audio element
+        starterAudio = new Audio(starterSoundPath);
+        starterAudio.volume = 0.7;
+        
+        // When starter sound ends or reaches 2.5s, resolve
+        const startTime = Date.now();
+        const STARTER_DURATION = 2500; // 2.5 seconds
+        
+        const checkComplete = () => {
+            const elapsed = Date.now() - startTime;
+            if (elapsed >= STARTER_DURATION) {
+                if (starterAudio) {
+                    starterAudio.pause();
+                    starterAudio.currentTime = 0;
+                }
+                resolve();
+            }
+        };
+        
+        starterAudio.addEventListener('ended', () => {
+            resolve();
+        });
+        
+        starterAudio.addEventListener('error', (e) => {
+            console.warn('Starter sound failed to load, continuing anyway:', e);
+            resolve();
+        });
+        
+        // Play starter sound
+        starterAudio.play().catch((err) => {
+            console.warn('Could not play starter sound:', err);
+            resolve();
+        });
+        
+        // Fallback: Force resolve after 2.5s
+        setTimeout(checkComplete, STARTER_DURATION);
+    });
+} */
+
+/* sync function start() {
+    // Prevent starting if already running or starter is playing
+    if (isEngineRunning) return;
+    
+    // Disable start button during startup
+    if (startBtn) startBtn.disabled = true; */
+    
+    // Update status to show starting
+    if (statusDisplay) statusDisplay.textContent = 'STARTING ENGINE...';
+    
+/*     // Play starter sound first (2.5 seconds)
+    isStarterPlaying = true;
+    await playStarterSound(); */
+    
     // Try to load INI config first, fallback to TypeScript config
     const iniConfig = await loadINIConfig(settings.activeConfig);
     let configToUse = iniConfig;
@@ -1546,32 +2148,14 @@ async function start() {
 
     loaded = true;
     isEngineRunning = true;
+    // isStarterPlaying = false;
     
     startBtn!.style.display = 'none';
+    startBtn!.disabled = false;
     stopEngineBtn!.style.display = 'block';
     // Controls are always visible now - don't hide/show them
     statusDisplay!.textContent = 'ENGINE RUNNING // READY';
     
-    // Initialize image visualizer: attach overlay and show PNG (engine off)
-    const gifContainer = document.getElementById('gif-container') as HTMLDivElement;
-    if (gifContainer && !engineImageEl) {
-        engineImageEl = document.createElement('img');
-        engineImageEl.id = 'engine-image';
-        engineImageEl.style.position = 'absolute';
-        engineImageEl.style.top = '0';
-        engineImageEl.style.left = '0';
-        engineImageEl.style.width = '100%';
-        engineImageEl.style.height = '100%';
-        engineImageEl.style.objectFit = 'cover';
-        engineImageEl.style.mixBlendMode = 'screen';
-        engineImageEl.style.background = 'transparent';
-        engineImageEl.style.zIndex = '2';
-        gifContainer.appendChild(engineImageEl);
-    }
-    if (engineImageEl) {
-        engineImageEl.src = getPngPathForEngine(settings.activeConfig);
-        engineImageEl.style.display = 'block';
-    }
     updateVideoVisualizer(engine.rpm);
     
     // initGauges() is called above after vehicle.init()
@@ -1634,8 +2218,7 @@ async function start() {
     }
     if (valSlipStart) valSlipStart.textContent = Math.round(slipStartRPM).toString();
     if (slipAtRedlineCheckbox) slipAtRedline = slipAtRedlineCheckbox.checked;
-}
-
+    
 /* Waveform Canvas Setup with Drag/Pan/Zoom */
 let canvasCtx: CanvasRenderingContext2D | null = null;
 let waveformPanX = 0;
@@ -1752,7 +2335,9 @@ function calculateSpeed(): number {
     const wheelRPM = engine.rpm / gearRatio;
     const speedMs = (wheelRPM / 60) * 2 * Math.PI * wheelRadius;
     const speedKmh = speedMs * 3.6;
-    return speedKmh;
+    
+    // Convert to MPH if that unit is selected
+    return useMPH ? speedKmh * 0.621371 : speedKmh;
 }
 
 /* Get Video Path for Engine Type */
@@ -1768,39 +2353,49 @@ function getVideoPathForEngine(engineType: string): string {
     };
     return videoMap[engineType.toLowerCase()] || './assets/Engines/V/V8.mp4';
 }
-// GIF and PNG paths per engine type
-function getGifPathForEngine(engineType: string): string {
-    const map: Record<string, string> = {
-        'v2': './assets/Engines/V/V2.gif',
-        'v4': './assets/Engines/V/V4.gif',
-        'v6': './assets/Engines/V/V6.gif',
-        'v8': './assets/Engines/V/V8.gif',
-        'v10': './assets/Engines/V/V10.gif',
-        'v12': './assets/Engines/V/v12.gif',
-        'v16': './assets/Engines/V/V16.gif',
-    };
-    return map[engineType.toLowerCase()] || './assets/Engines/V/V8.gif';
-}
-
-function getPngPathForEngine(engineType: string): string {
-    const map: Record<string, string> = {
-        'v2': './assets/Engines/V/V2.png',
-        'v4': './assets/Engines/V/V4.png',
-        'v6': './assets/Engines/V/V6.png',
-        'v8': './assets/Engines/V/V8.png',
-        'v10': './assets/Engines/V/V10.png',
-        'v12': './assets/Engines/V/v12.png',
-        'v16': './assets/Engines/V/V16.png',
-    };
-    return map[engineType.toLowerCase()] || './assets/Engines/V/V8.png';
-}
 
 /* Process video frame to canvas with black transparency */
 function processVideoFrame() {
-    // Image-only mode: ensure canvas stays hidden
-    if (engineVideoCanvas) {
-        engineVideoCanvas.style.display = 'none';
+    const engineVideo = document.getElementById('engine-video') as HTMLVideoElement;
+    if (!engineVideo || !engineVideoCanvas || engineVideo.videoWidth === 0) return;
+    
+    const ctx = engineVideoCanvas.getContext('2d', { alpha: true });
+    if (!ctx) return;
+    
+    // Clear canvas completely to ensure no residual black
+    ctx.clearRect(0, 0, engineVideoCanvas.width, engineVideoCanvas.height);
+    
+    // Draw video frame to canvas
+    ctx.drawImage(engineVideo, 0, 0, engineVideoCanvas.width, engineVideoCanvas.height);
+    
+    // Get image data to process pixels for black transparency
+    const imageData = ctx.getImageData(0, 0, engineVideoCanvas.width, engineVideoCanvas.height);
+    const data = imageData.data;
+    
+    // Make black pixels fully transparent with smoother gradient
+    const blackThreshold = 50; // Higher threshold to catch more dark pixels
+    for (let i = 0; i < data.length; i += 4) {
+        const r = data[i];
+        const g = data[i + 1];
+        const b = data[i + 2];
+        
+        // Calculate luminance (brightness) of the pixel
+        const luminance = (r + g + b) / 3;
+        
+        // If pixel is close to black, make it transparent
+        // Use gradient transparency for smoother edges
+        if (luminance < blackThreshold) {
+            // Fully transparent for very dark pixels
+            data[i + 3] = 0;
+        } else if (luminance < blackThreshold + 20) {
+            // Gradient transparency for edge smoothing
+            const alpha = ((luminance - blackThreshold) / 20) * 255;
+            data[i + 3] = Math.min(data[i + 3], alpha);
+        }
     }
+    
+    // Put processed image data back to canvas
+    ctx.putImageData(imageData, 0, 0);
 }
 
 /* Update Video Visualizer (like Torque) */
@@ -1819,42 +2414,18 @@ function updateVideoVisualizer(rpm: number) {
     const isInRedZone = rpm >= engine.limiter * 0.85;
     const isNearTopSpeed = rpm >= engine.limiter * 0.9;
     
-    // Only show GIF when throttle is pressed and engine running
-    const isEngineActivelyRunning = isEngineRunning && rpm >= 1 && !!(keys && keys['KeyW']);
+    // Engine is actively running when RPM is significantly above idle (with hysteresis to prevent flickering)
+    const isEngineActivelyRunning = isEngineRunning && rpm > (engine.idle - 100);
 
     if (isEngineActivelyRunning) {
-        // Ensure image element exists
-        if (gifContainer && !engineImageEl) {
-            engineImageEl = document.createElement('img');
-            engineImageEl.id = 'engine-image';
-            engineImageEl.style.position = 'absolute';
-            engineImageEl.style.top = '0';
-            engineImageEl.style.left = '0';
-            engineImageEl.style.width = '100%';
-            engineImageEl.style.height = '100%';
-            engineImageEl.style.objectFit = 'cover';
-            engineImageEl.style.mixBlendMode = 'screen';
-            engineImageEl.style.background = 'transparent';
-            engineImageEl.style.zIndex = '2';
-            gifContainer.appendChild(engineImageEl);
-        }
-
-        // Set GIF source for active running
-        const gifSrc = getGifPathForEngine(settings.activeConfig);
-        if (engineImageEl && engineImageEl.src !== gifSrc) {
-            engineImageEl.src = gifSrc;
-        }
-
         // Ensure container visible
         gifContainer.style.opacity = '1';
         gifContainer.style.display = 'flex';
         gifContainer.style.visibility = 'visible';
         
         // Color tints and effects based on engine state
-        // Use mix-blend-mode: screen to mask out black colors
         let filter = '';
         let transform = '';
-        let blendMode = 'screen'; // Masks black colors
         
         if (isNearTopSpeed) {
             // TOP SPEED - Strong red tint
@@ -1884,11 +2455,15 @@ function updateVideoVisualizer(rpm: number) {
             transform = 'none';
         }
         
-        if (engineImageEl) {
-            engineImageEl.style.filter = filter;
-            engineImageEl.style.transform = transform;
-            engineImageEl.style.display = 'block';
+        // Apply effects to canvas transform (not video directly to avoid flicker)
+        if (engineVideoCanvas) {
+            engineVideoCanvas.style.filter = filter;
+            engineVideoCanvas.style.transform = transform;
         }
+        
+        // Hide raw video element - only show processed canvas to prevent black flicker
+        engineVideo.style.display = 'none';
+        engineVideo.style.visibility = 'hidden';
         
         // Show logo blurred and behind video when engine is running
         const engineLogo = document.getElementById('engine-logo') as HTMLImageElement;
@@ -1896,19 +2471,31 @@ function updateVideoVisualizer(rpm: number) {
             engineLogo.style.display = 'block';
             engineLogo.style.opacity = '0.3';
             engineLogo.style.filter = 'blur(8px) brightness(0.5)';
-            engineLogo.style.zIndex = '1'; // Behind video canvas
-            engineLogo.style.top = '0';
-            engineLogo.style.left = '0';
-            engineLogo.style.width = '100%';
-            engineLogo.style.height = '100%';
-            engineLogo.style.objectFit = 'fill'; // Stretch to fill container exactly
+            engineLogo.style.zIndex = '1'; // Behind video
         }
         
-        // Ensure canvas stays hidden in image-only mode
+        // Display canvas for black transparency processing
         if (engineVideoCanvas) {
-            engineVideoCanvas.style.display = 'none';
+            engineVideoCanvas.style.display = 'block';
+            engineVideoCanvas.style.zIndex = '3';
+            processVideoFrame();
         }
+
+        // Synchronize video playback speed with RPM - with smooth transitions
+        const targetPlaybackRate = Math.max(0.25, Math.min(3.0, rpmNormalized * 2.5)); // 0.25 to 3x speed
         
+        // Smooth the playback rate transition to avoid jerkiness
+        const smoothingFactor = 0.15; // Lower = smoother but slower response
+        const smoothedPlaybackRate = previousPlaybackRate + (targetPlaybackRate - previousPlaybackRate) * smoothingFactor;
+        previousPlaybackRate = smoothedPlaybackRate;
+        
+        engineVideo.playbackRate = smoothedPlaybackRate;
+        
+        // Ensure video is playing
+        if (engineVideo.paused) {
+            engineVideo.play().catch(err => console.warn('Video play failed:', err));
+        }
+
         if (engineStatus) {
             engineStatus.textContent = 'Engine Running';
         }
@@ -1924,32 +2511,24 @@ function updateVideoVisualizer(rpm: number) {
             engineLogo.style.opacity = '0.6';
             engineLogo.style.filter = 'brightness(0.8) contrast(0.9)';
             engineLogo.style.zIndex = '1'; // Behind video
-            engineLogo.style.top = '0';
-            engineLogo.style.left = '0';
-            engineLogo.style.width = '100%';
-            engineLogo.style.height = '100%';
-            engineLogo.style.objectFit = 'fill'; // Stretch to fill container exactly
         }
         
-        // Show PNG darkened
+        // Show paused video darkened - hide raw video, show canvas only
         gifContainer.style.opacity = '0.6';
         gifContainer.style.display = 'flex';
         gifContainer.style.visibility = 'visible';
-        if (engineImageEl) {
-            engineImageEl.style.filter = 'brightness(0.2) contrast(0.5) saturate(0.3)';
-            engineImageEl.style.transform = 'none';
-            engineImageEl.style.display = 'block';
-            engineImageEl.src = getPngPathForEngine(settings.activeConfig);
-        }
-
-        // Always hide video/canvas in image-only OFF state
-        if (engineVideoCanvas) {
-            engineVideoCanvas.style.display = 'none';
-        }
-        engineVideo.pause();
-        engineVideo.removeAttribute('src');
+        
+        // Hide raw video element
         engineVideo.style.display = 'none';
         engineVideo.style.visibility = 'hidden';
+
+        // Show canvas with first frame (darkened)
+        if (engineVideoCanvas) {
+            engineVideoCanvas.style.display = 'block';
+            engineVideoCanvas.style.filter = 'brightness(0.2) contrast(0.5) saturate(0.3)';
+            engineVideoCanvas.style.transform = 'none';
+            processVideoFrame();
+        }
 
         if (engineStatus) {
             engineStatus.textContent = 'Engine Off';
@@ -2007,10 +2586,17 @@ function update(time: DOMHighResTimeStamp): void {
     }
     
     if (rpmMeter) {
-        // Clamp RPM to never exceed redline (valueRed)
-        const redlineRPM = engine.limiter * 0.85; // Same as valueRed calculation
-        const clampedRPM = Math.min(engine.rpm, redlineRPM);
-        rpmMeter.setValue(clampedRPM);
+        // Governor logic: Clamp RPM based on governor state
+        let displayRPM = engine.rpm;
+        
+        if (governorEnabled) {
+            // Governor ON: Enforce redline limit (85% of limiter)
+            const redlineRPM = engine.limiter * 0.85;
+            displayRPM = Math.min(engine.rpm, redlineRPM);
+        }
+        // Governor OFF: Show actual RPM (can exceed redline)
+        
+        rpmMeter.setValue(displayRPM);
     }
     
     // Update gear display with arrow indicator
@@ -2047,6 +2633,66 @@ function update(time: DOMHighResTimeStamp): void {
     
     // Update video visualizer
     updateVideoVisualizer(engine.rpm);
+    
+    // Update thermometer display based on real engine activity
+    if (isEngineRunning) {
+        lastEngineRunTime = Date.now();
+        
+        // Gradually warm up to operating temperature first
+        if (engineTemp < OPERATING_TEMP) {
+            engineTemp += 15 * dt; // Fast warm-up to operating temp
+        } else {
+            // Heat increases with RPM and throttle once at operating temp
+            const rpmFactor = (engine.rpm - engine.idle) / (engine.limiter - engine.idle);
+            const throttleFactor = engine.throttle;
+            const heatGeneration = (rpmFactor * 0.5 + throttleFactor * 0.5) * 150 * dt; // Up to 150°C/sec above operating
+            
+            // Cooling factor (more cooling at lower temps)
+            const coolingFactor = Math.max(0.3, (engineTemp - OPERATING_TEMP) / 200);
+            const heatDissipation = coolingFactor * 25 * dt; // Base cooling rate
+            
+            engineTemp += heatGeneration - heatDissipation;
+        }
+        
+        // Apply overheat consequences if allowed
+        if (allowOverheat && engineTemp >= 230) {
+            thermalDamage += dt * 10; // 10% damage per second when overheating
+            
+            // Engine seizure at critical temp
+            if (engineTemp >= 280 && !isEngineSeized) {
+                isEngineSeized = true;
+                console.warn('⚠️ ENGINE SEIZED - CATASTROPHIC FAILURE!');
+            }
+        } else {
+            // Slowly recover thermal damage when not overheating
+            thermalDamage = Math.max(0, thermalDamage - dt * 2);
+        }
+        
+        // Clamp temperature
+        engineTemp = clamp(engineTemp, OPERATING_TEMP, allowOverheat ? 300 : 230);
+    } else {
+        // Engine off - cool down based on time since last run
+        const timeSinceRun = (Date.now() - lastEngineRunTime) / 1000; // seconds
+        
+        if (timeSinceRun < 60) {
+            // Recent run (< 1 min) - slow cooling, heat soaks
+            engineTemp = Math.max(OPERATING_TEMP, engineTemp - 8 * dt);
+        } else if (timeSinceRun < 300) {
+            // Moderate time (1-5 min) - normal cooling
+            engineTemp = Math.max(ROOM_TEMP + 20, engineTemp - 20 * dt);
+        } else if (timeSinceRun < 1800) {
+            // Long time (5-30 min) - faster cooling to ambient
+            engineTemp = Math.max(ROOM_TEMP, engineTemp - 40 * dt);
+        } else {
+            // Very long time (30+ min) - at room temperature
+            engineTemp = ROOM_TEMP;
+        }
+        
+        thermalDamage = Math.max(0, thermalDamage - dt * 5); // Faster recovery when off
+    }
+    
+    // Update thermometer display
+    updateThermometerDisplay();
     
     // Continuously process video frames to canvas with black transparency
     processVideoFrame();

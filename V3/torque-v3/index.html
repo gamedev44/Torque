@@ -632,6 +632,92 @@
         body.modal-open {
             overflow: hidden;
         }
+
+        /* Toggle Switch Styles */
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 48px;
+            height: 24px;
+        }
+
+        .switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .switch .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #ff4444;
+            transition: 0.3s;
+            border-radius: 24px;
+            box-shadow: 0 0 8px rgba(255, 68, 68, 0.6), inset 0 1px 3px rgba(0, 0, 0, 0.5);
+        }
+
+        .switch .slider:before {
+            position: absolute;
+            content: "";
+            height: 18px;
+            width: 18px;
+            left: 3px;
+            bottom: 3px;
+            background-color: white;
+            transition: 0.3s;
+            border-radius: 50%;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+        }
+
+        .switch input:checked + .slider {
+            background-color: #ff4444;
+            box-shadow: 0 0 12px rgba(255, 68, 68, 0.8), inset 0 1px 3px rgba(0, 0, 0, 0.5);
+        }
+
+        .switch input:checked + .slider:before {
+            transform: translateX(24px);
+        }
+
+        .switch input:not(:checked) + .slider {
+            background-color: #333;
+            box-shadow: 0 0 8px rgba(51, 51, 51, 0.6), inset 0 1px 3px rgba(0, 0, 0, 0.5);
+        }
+
+        .switch .slider:hover {
+            box-shadow: 0 0 16px rgba(255, 68, 68, 1), inset 0 1px 3px rgba(0, 0, 0, 0.5);
+        }
+        
+        /* Thermal Modal SVG Damage States */
+        .dmg-0 { fill: #00e5ff; fill-opacity: 0.1; stroke: rgba(0, 229, 255, 0.3); stroke-width: 1.5; transition: all 0.3s; }
+        .dmg-1 { fill: #00ffaa; fill-opacity: 0.2; stroke: rgba(0, 255, 170, 0.4); }
+        .dmg-2 { fill: #d4ff00; fill-opacity: 0.3; stroke: rgba(212, 255, 0, 0.5); }
+        .dmg-3 { fill: #ffea00; fill-opacity: 0.4; stroke: rgba(255, 234, 0, 0.6); }
+        .dmg-4 { fill: #ff9100; fill-opacity: 0.5; stroke: rgba(255, 145, 0, 0.7); }
+        .dmg-5 { fill: #ff3d00; fill-opacity: 0.6; stroke: #ff3d00; animation: pulse 0.8s infinite; }
+        .dmg-6 { fill: #ff0000; fill-opacity: 0.9; stroke: #fff; animation: heavy-pulse 0.4s infinite; }
+        
+        @keyframes heavy-pulse {
+            0%, 100% { opacity: 1; filter: drop-shadow(0 0 10px #ff0000); }
+            50% { opacity: 0.5; filter: drop-shadow(0 0 25px #ff0000); }
+        }
+        
+        .smoke-particle {
+            position: absolute;
+            background: radial-gradient(circle, rgba(160,160,160,0.5) 0%, rgba(0,0,0,0) 70%);
+            border-radius: 50%;
+            pointer-events: none;
+            animation: rise 1.2s infinite ease-out;
+        }
+        
+        @keyframes rise {
+            0% { transform: translateY(0) scale(0.5); opacity: 0; }
+            20% { opacity: 0.7; }
+            100% { transform: translateY(-120px) scale(4); opacity: 0; }
+        }
     </style>
   </head>
   <body>
@@ -764,6 +850,21 @@
                                 </div>
                                 <input type="range" id="slider-compliance" min="0" max="0.1" step="0.01" value="0.01">
                             </div>
+                            <!-- Governor Toggle -->
+                            <div style="margin-top: 10px; padding-top: 10px; border-top: 1px solid #333;">
+                                <div style="display: flex; align-items: center; justify-content: space-between;">
+                                    <label for="governor-toggle" style="font-size: 11px; color: #ff4444; font-weight: bold; text-transform: uppercase; cursor: pointer;">
+                                        🔴 GOVERNOR (RPM LIMITER)
+                                    </label>
+                                    <label class="switch">
+                                        <input type="checkbox" id="governor-toggle" checked>
+                                        <span class="slider"></span>
+                                    </label>
+                                </div>
+                                <div style="font-size: 9px; color: #888; margin-top: 5px; font-style: italic;">
+                                    ON: Enforces redline limit | OFF: Allows over-revving
+                                </div>
+                            </div>
                         </div>
                     </div>
                     <button id="toggle-drivetrain" class="btn-tech" style="width: 100%; margin-top: 10px;">SHOW DRIVETRAIN</button>
@@ -808,7 +909,7 @@
                        preload="auto">
                     Your browser does not support the video tag.
                 </video>
-                <canvas id="engine-video-canvas" style="position: absolute; width: 100%; height: 100%; top: 0; left: 0; display: none; background: transparent; z-index: 2;"></canvas>
+                <canvas id="engine-video-canvas" style="position: absolute; width: 100%; height: 100%; top: 0; left: 0; display: none; background: transparent; z-index: 3;"></canvas>
             </div>
             
             <!-- Engine Status Text (fallback) -->
@@ -827,10 +928,47 @@
             <div class="panel-header" style="width: 100%; text-align: center;">Telemetry</div>
             
             <!-- SPEEDOMETER GAUGE -->
-            <div class="meter meter--speed meter--big-label" id="gauge-speed"></div>
+            <div style="display: flex; flex-direction: column; align-items: center; gap: 8px; width: 90%;">
+                <div class="meter meter--speed meter--big-label" id="gauge-speed"></div>
+                <button id="speed-unit-toggle" class="btn-tech" style="padding: 6px 12px; font-size: 10px; background: rgba(0, 229, 255, 0.1); border-color: #00e5ff; color: #00e5ff; width: 100px;" title="Toggle km/h / mph">KM/H</button>
+            </div>
             
             <!-- RPM GAUGE -->
             <div class="meter meter--rpm meter--big-label" id="gauge-rpm"></div>
+            
+            <!-- Thermal Management Button -->
+            <button id="thermal-modal-btn" class="btn-tech" style="margin-top: 15px; padding: 10px 20px; font-size: 11px; width: 90%; background: rgba(255, 68, 68, 0.1); border-color: #ff4444; color: #ff4444;">
+                🔥 THERMAL MANAGEMENT
+            </button>
+            
+            <!-- Thermometer Display -->
+            <div id="thermometer-display" style="width: 90%; margin-top: 10px; background: rgba(0, 0, 0, 0.6); border: 1px solid #ff4444; border-radius: 8px; padding: 12px; display: flex; align-items: center; gap: 15px;">
+                <!-- Thermometer Icon/Bar -->
+                <div style="position: relative; width: 30px; height: 80px; display: flex; flex-direction: column; align-items: center;">
+                    <!-- Thermometer tube -->
+                    <div style="width: 8px; height: 60px; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.3); border-radius: 4px 4px 0 0; position: relative; overflow: hidden;">
+                        <!-- Mercury/fluid level -->
+                        <div id="thermo-fluid" style="position: absolute; bottom: 0; left: 0; right: 0; background: linear-gradient(to top, #4488ff, #66aaff, #88ccff); transition: height 0.3s ease; height: 10%;"></div>
+                    </div>
+                    <!-- Thermometer bulb -->
+                    <div id="thermo-bulb" style="width: 16px; height: 16px; background: radial-gradient(circle, #6699ff, #4488ff); border: 1px solid rgba(255,255,255,0.4); border-radius: 50%; box-shadow: 0 0 10px rgba(68, 136, 255, 0.6);"></div>
+                </div>
+                
+                <!-- Temp Info -->
+                <div style="flex: 1; display: flex; flex-direction: column; gap: 4px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <span style="font-size: 10px; color: #888; text-transform: uppercase; font-weight: bold;">ENGINE TEMP</span>
+                        <div style="display: flex; align-items: center; gap: 6px;">
+                            <span id="temp-value" style="font-size: 16px; color: #66aaff; font-weight: bold; font-family: 'Courier New', monospace;">20°C</span>
+                            <button id="temp-unit-toggle" style="background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); color: #888; padding: 2px 6px; border-radius: 4px; font-size: 9px; font-weight: bold; cursor: pointer; transition: all 0.2s;" title="Toggle °C / °F">°C</button>
+                        </div>
+                    </div>
+                    <div style="font-size: 9px; color: #666; display: flex; align-items: center; gap: 6px;">
+                        <span id="overheat-status" style="padding: 2px 6px; background: rgba(0, 255, 170, 0.2); border: 1px solid #00ffaa; border-radius: 3px; font-weight: bold; text-transform: uppercase;">🔒 SAFE</span>
+                        <span id="temp-status" style="color: #66aaff;">ROOM TEMP</span>
+                    </div>
+                </div>
+            </div>
             
             <!-- QUICK TEST REV SLIDER (like Torque) -->
             <div style="width: 100%; padding: 15px; margin-top: 10px;">
@@ -891,6 +1029,113 @@
             <div id="custom-engines-section" style="display: none;">
                 <h3 style="color: var(--accent-cyan); margin-bottom: 15px; font-size: 1.1rem; border-left: 3px solid var(--accent-cyan); padding-left: 10px;">Custom Configurations</h3>
                 <div id="engine-custom-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 15px;"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Thermal Management Modal -->
+    <div id="thermal-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.85); backdrop-filter: blur(10px); z-index: 10000; overflow-y: auto; padding: 20px; box-sizing: border-box; align-items: center; justify-content: center;">
+        <div style="max-width: 1400px; margin: 30px auto; background: rgba(20, 20, 25, 0.95); backdrop-filter: blur(20px); border: 2px solid #ff4444; border-radius: 24px; padding: 40px; box-shadow: 0 0 100px rgba(255, 68, 68, 0.2); position: relative;">
+            
+            <!-- Close Button -->
+            <button id="close-thermal-modal" style="position: absolute; top: 20px; right: 30px; background: transparent; border: 2px solid #ff4444; color: #ff4444; padding: 8px 20px; cursor: pointer; border-radius: 8px; font-family: inherit; font-size: 16px; font-weight: bold; transition: all 0.3s;" onmouseover="this.style.background='#ff4444'; this.style.color='#000';" onmouseout="this.style.background='transparent'; this.style.color='#ff4444';">✕ CLOSE</button>
+            
+            <div style="display: flex; flex-direction: column; gap: 30px;">
+                <!-- Header -->
+                <div style="border-bottom: 2px solid #ff4444; padding-bottom: 20px;">
+                    <div style="display: flex; justify-content: space-between; align-items: flex-end;">
+                        <div>
+                            <p style="font-size: 10px; font-weight: bold; color: #ff4444; text-transform: uppercase; letter-spacing: 2px; margin-bottom: 5px;">Diagnostic Level 4</p>
+                            <h2 style="color: #ff4444; margin: 0; font-size: 2rem; font-weight: 900; font-style: italic;">🔥 THERMAL MANAGEMENT HUD</h2>
+                        </div>
+                        <div style="display: flex; gap: 8px;">
+                            <button onclick="window.switchCarType('gt')" id="btn-gt" class="type-btn selected" style="background: rgba(0, 229, 255, 0.1); border: 1px solid #00e5ff; color: #00e5ff; padding: 8px 16px; border-radius: 6px; font-size: 10px; font-weight: bold; cursor: pointer; transition: all 0.2s;">GT</button>
+                            <button onclick="window.switchCarType('f1')" id="btn-f1" class="type-btn" style="background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.1); color: #888; padding: 8px 16px; border-radius: 6px; font-size: 10px; font-weight: bold; cursor: pointer; transition: all 0.2s;">F1</button>
+                            <button onclick="window.switchCarType('nascar')" id="btn-nascar" class="type-btn" style="background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.1); color: #888; padding: 8px 16px; border-radius: 6px; font-size: 10px; font-weight: bold; cursor: pointer; transition: all 0.2s;">STOCK</button>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Main Content Area -->
+                <div style="display: flex; flex-direction: row; gap: 40px; align-items: flex-start;">
+                    
+                    <!-- Left: Car Visualizer -->
+                    <div style="position: relative; width: 350px; height: 600px; flex-shrink: 0;">
+                        <svg viewBox="0 0 350 650" style="position: absolute; inset: 0; width: 100%; height: 100%; z-index: 10;" id="thermal-svg">
+                            <g id="thermal-car-group"></g>
+                        </svg>
+                        <!-- Warning Labels -->
+                        <div id="thermal-warn-overheat" class="warning-icon" style="position: absolute; top: 380px; left: 125px; background: #ff1100; color: white; padding: 4px 10px; border-radius: 4px; font-size: 10px; font-weight: 900; text-transform: uppercase; display: none; z-index: 50; box-shadow: 0 0 20px rgba(255,0,0,0.5); white-space: nowrap;">ENGINE OVERHEAT</div>
+                        <div id="thermal-warn-ers" class="warning-icon" style="position: absolute; top: 440px; right: 10px; background: #ff1100; color: white; padding: 4px 10px; border-radius: 4px; font-size: 10px; font-weight: 900; text-transform: uppercase; display: none; z-index: 50; box-shadow: 0 0 20px rgba(255,0,0,0.5); white-space: nowrap;">ERS/HYBRID FAIL</div>
+                        <div id="thermal-warn-drs" class="warning-icon" style="position: absolute; bottom: 80px; left: 125px; background: #ff1100; color: white; padding: 4px 10px; border-radius: 4px; font-size: 10px; font-weight: 900; text-transform: uppercase; display: none; z-index: 50; box-shadow: 0 0 20px rgba(255,0,0,0.5); white-space: nowrap;">DRS FAULT</div>
+                        <div id="thermal-warn-aero" class="warning-icon" style="position: absolute; top: 100px; left: 10px; background: #ff1100; color: white; padding: 4px 10px; border-radius: 4px; font-size: 10px; font-weight: 900; text-transform: uppercase; display: none; z-index: 50; box-shadow: 0 0 20px rgba(255,0,0,0.5); white-space: nowrap;">AERO DAMAGE</div>
+                        <div id="thermal-smoke-container" style="position: absolute; inset: 0; pointer-events: none;"></div>
+                    </div>
+                    
+                    <!-- Right: Controls & Readouts -->
+                    <div style="flex: 1; display: flex; flex-direction: column; gap: 25px; min-width: 400px;">
+                        
+                        <!-- Damage Sliders -->
+                        <div style="display: flex; flex-direction: column; gap: 20px;">
+                            <div>
+                                <div style="display: flex; justify-content: space-between; font-size: 10px; font-weight: bold; text-transform: uppercase; opacity: 0.7; margin-bottom: 8px;">
+                                    <span style="color: var(--text-light);">Thermal Load</span>
+                                    <span id="thermal-label-engine" style="color: #ff4444;">0%</span>
+                                </div>
+                                <input type="range" id="thermal-input-engine" min="0" max="6" value="0" style="width: 100%; accent-color: #ff4444;">
+                            </div>
+                            <div>
+                                <div style="display: flex; justify-content: space-between; font-size: 10px; font-weight: bold; text-transform: uppercase; opacity: 0.7; margin-bottom: 8px;">
+                                    <span style="color: var(--text-light);">Drive Linkage Stress</span>
+                                    <span id="thermal-label-drive" style="color: #ff4444;">0%</span>
+                                </div>
+                                <input type="range" id="thermal-input-drive" min="0" max="6" value="0" style="width: 100%; accent-color: #ff4444;">
+                            </div>
+                            <div>
+                                <div style="display: flex; justify-content: space-between; font-size: 10px; font-weight: bold; text-transform: uppercase; opacity: 0.7; margin-bottom: 8px;">
+                                    <span style="color: var(--text-light);">Brake Temp / Pad Wear</span>
+                                    <span id="thermal-label-brakes" style="color: #ff4444;">0%</span>
+                                </div>
+                                <input type="range" id="thermal-input-brakes" min="0" max="6" value="0" style="width: 100%; accent-color: #ff4444;">
+                            </div>
+                        </div>
+                        
+                        <!-- Failure Mode Buttons -->
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                            <button onclick="window.toggleThermalFailure('overheat')" style="background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); padding: 12px; border-radius: 6px; font-size: 10px; font-weight: bold; text-transform: uppercase; color: var(--text-light); cursor: pointer; transition: all 0.2s;" onmouseover="this.style.background='rgba(255,255,255,0.1)'" onmouseout="this.style.background='rgba(255,255,255,0.05)'">OVERHEAT</button>
+                            <button onclick="window.toggleThermalFailure('ers')" style="background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); padding: 12px; border-radius: 6px; font-size: 10px; font-weight: bold; text-transform: uppercase; color: var(--text-light); cursor: pointer; transition: all 0.2s;" onmouseover="this.style.background='rgba(255,255,255,0.1)'" onmouseout="this.style.background='rgba(255,255,255,0.05)'">ERS FAIL</button>
+                            <button onclick="window.toggleThermalFailure('drs')" style="background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); padding: 12px; border-radius: 6px; font-size: 10px; font-weight: bold; text-transform: uppercase; color: var(--text-light); cursor: pointer; transition: all 0.2s;" onmouseover="this.style.background='rgba(255,255,255,0.1)'" onmouseout="this.style.background='rgba(255,255,255,0.05)'">DRS STUCK</button>
+                            <button onclick="window.toggleThermalFailure('aero')" style="background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); padding: 12px; border-radius: 6px; font-size: 10px; font-weight: bold; text-transform: uppercase; color: var(--text-light); cursor: pointer; transition: all 0.2s;" onmouseover="this.style.background='rgba(255,255,255,0.1)'" onmouseout="this.style.background='rgba(255,255,255,0.05)'">AERO LOOSE</button>
+                        </div>
+                        
+                        <!-- System Terminal -->
+                        <div style="background: rgba(0, 0, 0, 0.8); border: 1px solid #ff4444; border-radius: 12px; padding: 15px;">
+                            <h4 style="font-size: 9px; font-weight: bold; color: #ff4444; margin-bottom: 10px; text-transform: uppercase; letter-spacing: 1px;">🌡️ SYSTEM TERMINAL</h4>
+                            <div id="thermal-readout" style="font-family: 'Courier New', monospace; font-size: 11px; color: rgba(255, 136, 136, 0.8); line-height: 1.7;">
+                                INITIALIZING SENSORS...<br>
+                                LINK ESTABLISHED.
+                            </div>
+                        </div>
+                        
+                        <!-- Allow Overheat Control -->
+                        <div style="background: rgba(255, 68, 68, 0.08); border: 2px solid #ff4444; border-radius: 12px; padding: 20px;">
+                            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
+                                <label for="allow-overheat-toggle" style="font-size: 13px; color: #ff4444; font-weight: bold; text-transform: uppercase; cursor: pointer; display: flex; align-items: center; gap: 8px;">
+                                    <span style="font-size: 20px;">⚠️</span> ALLOW OVERHEAT
+                                </label>
+                                <label class="switch">
+                                    <input type="checkbox" id="allow-overheat-toggle">
+                                    <span class="slider"></span>
+                                </label>
+                            </div>
+                            <div style="font-size: 10px; color: #ff8888; line-height: 1.5;">
+                                <strong>🔒 OFF:</strong> Auto-limits RPM to prevent damage<br>
+                                <strong>🔓 ON:</strong> Risk engine seizure, blown gaskets, catastrophic failure
+                            </div>
+                        </div>
+                        
+                    </div>
+                </div>
             </div>
         </div>
     </div>
